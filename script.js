@@ -134,6 +134,16 @@ function setupEventListeners() {
 
     // Event listeners para modo online
     document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+    document.getElementById('leaveOnlineBtn').addEventListener('click', () => {
+        if (gameState.online.isOnline) {
+            if (confirm('¿Estás seguro de que deseas salir del modo online y cerrar la sala?')) {
+                leaveRoom();
+                closeOnlineModal();
+                // Restaurar UI
+                updateUI();
+            }
+        }
+    });
     document.getElementById('closeOnlineModalBtn').addEventListener('click', () => {
         // Solo cerrar el modal sin salir de la sala si ya está conectado
         if (!gameState.online.isOnline) {
@@ -196,9 +206,20 @@ async function initializeCamera() {
             console.log('✅ Cámara ya está inicializada y funcionando');
         }
 
-        // Si está en modo jugador vs jugador, inicializar segunda cámara
-        if (gameState.mode === 'player' && !webcam2) {
+        // Si está en modo jugador vs jugador LOCAL (no online), inicializar segunda cámara
+        if (gameState.mode === 'player' && !gameState.online.isOnline && !webcam2) {
             await initPlayer2();
+        }
+
+        // En modo online, asegurar que la cámara del jugador 2 esté oculta
+        if (gameState.mode === 'online' || gameState.online.isOnline) {
+            document.getElementById('webcam-container-2').classList.add('hidden');
+            document.getElementById('label-container-2').classList.add('hidden');
+            if (webcam2 && webcam2.isPlaying) {
+                webcam2.stop();
+                webcam2 = null;
+                model2 = null;
+            }
         }
 
         initBtn.textContent = '✓ Cámara Inicializada';
@@ -991,22 +1012,25 @@ function showOnlineResult(resultData) {
         // Mostrar resultado (solo si no es el host, porque el host ya lo mostró)
         if (!gameState.online.isHost) {
             showResult(result, resultData.player1Gesture, resultData.player2Gesture, winner);
-        }
-        updateScores();
+            updateScores();
 
-        // Anunciar con voz (solo una vez)
-        const player1Name = GESTURES[resultData.player1Gesture].name.toLowerCase();
-        const player2Name = GESTURES[resultData.player2Gesture].name.toLowerCase();
-        let message = '';
-        if (result === 'Empate') {
-            message = `Empate. Ambos eligieron ${player1Name}.`;
-        } else if (result === 'Ganaste') {
-            message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. ¡Ganaste esta ronda!`;
+            // Anunciar con voz solo para el jugador no-host (el host ya lo anunció)
+            const player1Name = GESTURES[resultData.player1Gesture].name.toLowerCase();
+            const player2Name = GESTURES[resultData.player2Gesture].name.toLowerCase();
+            let message = '';
+            if (result === 'Empate') {
+                message = `Empate. Ambos eligieron ${player1Name}.`;
+            } else if (result === 'Ganaste') {
+                message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. ¡Ganaste esta ronda!`;
+            } else {
+                message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tu oponente gana esta ronda.`;
+            }
+
+            speak(message).catch(err => console.error('Error al anunciar:', err));
         } else {
-            message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tu oponente gana esta ronda.`;
+            // El host solo actualiza scores (ya mostró resultado y anunció voz)
+            updateScores();
         }
-
-        speak(message).catch(err => console.error('Error al anunciar:', err));
 
         // Resetear bandera después de un momento
         setTimeout(() => {
@@ -1103,21 +1127,52 @@ async function toggleMode() {
 // Actualizar UI según el modo
 function updateUI() {
     const modeBtn = document.getElementById('modeBtn');
+    const leaveOnlineBtn = document.getElementById('leaveOnlineBtn');
     const opponentTitle = document.getElementById('opponent-title');
     const opponentLabel = document.getElementById('opponent-label');
     const systemEmoji = document.getElementById('system-emoji');
     const systemText = document.getElementById('system-text');
+    const webcamContainer2 = document.getElementById('webcam-container-2');
+    const labelContainer2 = document.getElementById('label-container-2');
 
-    if (gameState.mode === 'system') {
+    // Ocultar botón de salir del modo online si no está en modo online
+    if (leaveOnlineBtn) {
+        leaveOnlineBtn.style.display = gameState.online.isOnline ? 'inline-block' : 'none';
+    }
+
+    if (gameState.mode === 'system' || (gameState.mode === 'online' && !gameState.online.isOnline)) {
         modeBtn.textContent = 'Modo: Jugador vs Sistema';
         opponentTitle.textContent = 'Sistema';
         opponentLabel.textContent = 'Sistema';
-        systemEmoji.textContent = '🤖';
-        systemText.textContent = 'Esperando...';
-    } else {
+        if (systemEmoji) systemEmoji.textContent = '🤖';
+        if (systemText) systemText.textContent = 'Esperando...';
+
+        // Asegurar que la cámara del jugador 2 esté oculta en modo sistema
+        if (webcamContainer2) webcamContainer2.classList.add('hidden');
+        if (labelContainer2) labelContainer2.classList.add('hidden');
+    } else if (gameState.mode === 'player' && !gameState.online.isOnline) {
         modeBtn.textContent = 'Modo: Jugador vs Jugador';
         opponentTitle.textContent = 'Jugador 2';
         opponentLabel.textContent = 'Jugador 2';
+
+        // Mostrar cámara del jugador 2 solo en modo local
+        if (webcamContainer2 && webcam2) {
+            webcamContainer2.classList.remove('hidden');
+        }
+        if (labelContainer2 && webcam2) {
+            labelContainer2.classList.remove('hidden');
+        }
+    } else if (gameState.mode === 'online' || gameState.online.isOnline) {
+        // Modo online - ocultar cámara del jugador 2, solo mostrar emoji
+        if (webcamContainer2) webcamContainer2.classList.add('hidden');
+        if (labelContainer2) labelContainer2.classList.add('hidden');
+
+        // Detener cámara del jugador 2 si está activa
+        if (webcam2 && webcam2.isPlaying) {
+            webcam2.stop();
+            webcam2 = null;
+            model2 = null;
+        }
         systemEmoji.textContent = '👤';
         systemText.textContent = 'Esperando...';
     }
@@ -1355,7 +1410,11 @@ async function createRoom() {
             // Si no es el jugador local y tiene un gesto, actualizar UI
             if (playerId !== gameState.online.playerId && playerData.gesture) {
                 gameState.player2Gesture = playerData.gesture;
+                // Solo actualizar el display del gesto, NO mostrar cámara
                 updateGestureDisplay('gesture2', playerData.gesture);
+                // Asegurar que la cámara esté oculta en modo online
+                document.getElementById('webcam-container-2').classList.add('hidden');
+                document.getElementById('label-container-2').classList.add('hidden');
             }
             updateRoomPlayers();
         });
@@ -1566,7 +1625,11 @@ async function joinRoom() {
             // Si no es el jugador local y tiene un gesto, actualizar UI
             if (playerId !== gameState.online.playerId && playerData.gesture) {
                 gameState.player2Gesture = playerData.gesture;
+                // Solo actualizar el display del gesto, NO mostrar cámara
                 updateGestureDisplay('gesture2', playerData.gesture);
+                // Asegurar que la cámara esté oculta en modo online
+                document.getElementById('webcam-container-2').classList.add('hidden');
+                document.getElementById('label-container-2').classList.add('hidden');
             }
             updateRoomPlayers();
         });
@@ -1884,11 +1947,34 @@ function updateUIForOnlineMode() {
     const opponentTitle = document.getElementById('opponent-title');
     const opponentLabel = document.getElementById('opponent-label');
     const modeBtn = document.getElementById('modeBtn');
+    const leaveOnlineBtn = document.getElementById('leaveOnlineBtn');
+    const webcamContainer2 = document.getElementById('webcam-container-2');
+    const labelContainer2 = document.getElementById('label-container-2');
 
     opponentTitle.textContent = 'Oponente Online';
     opponentLabel.textContent = 'Oponente';
     modeBtn.textContent = 'Modo: Online';
     modeBtn.disabled = true; // Deshabilitar cambio de modo cuando está online
+
+    // Mostrar botón para salir del modo online
+    if (leaveOnlineBtn) {
+        leaveOnlineBtn.style.display = 'inline-block';
+    }
+
+    // Asegurar que la cámara del jugador 2 esté oculta en modo online
+    if (webcamContainer2) {
+        webcamContainer2.classList.add('hidden');
+    }
+    if (labelContainer2) {
+        labelContainer2.classList.add('hidden');
+    }
+
+    // Detener cámara del jugador 2 si está activa (no se usa en modo online)
+    if (webcam2 && webcam2.isPlaying) {
+        webcam2.stop();
+        webcam2 = null;
+        model2 = null;
+    }
 }
 
 // Salir de la sala
@@ -1913,9 +1999,22 @@ function leaveRoom() {
 
     // Restaurar UI
     const modeBtn = document.getElementById('modeBtn');
-    modeBtn.disabled = false;
-    updateUI();
+    const leaveOnlineBtn = document.getElementById('leaveOnlineBtn');
+    if (modeBtn) {
+        modeBtn.disabled = false;
+        modeBtn.textContent = 'Modo: Jugador vs Sistema';
+    }
+    if (leaveOnlineBtn) {
+        leaveOnlineBtn.style.display = 'none';
+    }
 
+    // Restaurar título del oponente
+    const opponentTitle = document.getElementById('opponent-title');
+    const opponentLabel = document.getElementById('opponent-label');
+    if (opponentTitle) opponentTitle.textContent = 'Sistema';
+    if (opponentLabel) opponentLabel.textContent = 'Sistema';
+
+    updateUI();
     closeOnlineModal();
 }
 
