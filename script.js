@@ -189,9 +189,11 @@ async function initializeCamera() {
             throw new Error('Las librerías necesarias no están cargadas. Por favor, recarga la página.');
         }
 
-        // Inicializar cámara del jugador 1
-        if (!webcam1) {
+        // Inicializar cámara del jugador 1 (solo si no está ya inicializada)
+        if (!webcam1 || !webcam1.isPlaying) {
             await initPlayer1();
+        } else {
+            console.log('✅ Cámara ya está inicializada y funcionando');
         }
 
         // Si está en modo jugador vs jugador, inicializar segunda cámara
@@ -228,10 +230,22 @@ async function initPlayer1() {
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
+        // Verificar si el modelo y la cámara ya están inicializados
+        if (model1 && webcam1 && webcam1.isPlaying) {
+            console.log('✅ Modelo y cámara ya están inicializados');
+            return;
+        }
+
         console.log('Cargando modelo...');
         model1 = await tm.load(modelURL, metadataURL);
         maxPredictions = model1.getTotalClasses();
         console.log('Modelo cargado correctamente');
+
+        // Verificar nuevamente antes de inicializar cámara
+        if (webcam1 && webcam1.isPlaying) {
+            console.log('✅ Cámara ya está inicializada');
+            return;
+        }
 
         console.log('Inicializando cámara...');
         webcam1 = new tm.Webcam(300, 300, true);
@@ -689,28 +703,62 @@ const VAPI_PUBLIC_KEY = 'd18dd720-b478-4f1a-8cd4-c2c1b8279b37'; // Public key de
 // API Key de ElevenLabs - Configurada
 const ELEVENLABS_API_KEY = 'sk_4acb5dc0803f7e63a478aca3a4fdf7fdb52082d4211a0337';
 
-// Función de voz usando VAPI/ElevenLabs (OBLIGATORIO - sin fallback)
+// Función de voz usando VAPI/ElevenLabs (con manejo de errores mejorado y cola)
 async function speak(text) {
-    // OBLIGATORIO: Solo usar ElevenLabs, sin fallback a speechSynthesis
     if (!ELEVENLABS_API_KEY) {
-        console.error('❌ ERROR: ELEVENLABS_API_KEY no está configurada. El juego requiere ElevenLabs para funcionar.');
-        alert('Error: API Key de ElevenLabs no configurada. Por favor, configura ELEVENLABS_API_KEY en script.js');
+        console.warn('⚠️ ELEVENLABS_API_KEY no está configurada. El juego continuará sin voz.');
         return;
     }
 
-    try {
-        await speakWithVAPI(text);
-    } catch (error) {
-        console.error('❌ ERROR CRÍTICO con ElevenLabs:', error);
-        // NO usar fallback - mostrar error al usuario
-        alert(`Error al reproducir voz de ElevenLabs: ${error.message}\n\nPor favor, verifica:\n1. Tu conexión a internet\n2. Que tu API key sea válida\n3. Que el voice ID sea correcto\n\nRevisa la consola para más detalles.`);
-        throw error; // Lanzar error para que el usuario sepa que algo falló
-    }
+    // Agregar a la cola para evitar peticiones concurrentes
+    return new Promise((resolve, reject) => {
+        speechQueue.push({
+            text,
+            resolve,
+            reject
+        });
+        processSpeechQueue();
+    }).catch(error => {
+        console.error('❌ Error con ElevenLabs:', error);
+        console.warn('⚠️ Continuando sin voz. El juego seguirá funcionando normalmente.');
+        // No bloquear el juego si falla la voz
+    });
 }
 
 // Cache para audio de VAPI
 const audioCache = new Map();
 const MAX_CACHE_SIZE = 10;
+
+// Cola de peticiones para ElevenLabs (evitar error 429 - Too Many Requests)
+let speechQueue = [];
+let isProcessingSpeech = false;
+
+// Procesar cola de peticiones de voz
+async function processSpeechQueue() {
+    if (isProcessingSpeech || speechQueue.length === 0) {
+        return;
+    }
+
+    isProcessingSpeech = true;
+    const {
+        text,
+        resolve,
+        reject
+    } = speechQueue.shift();
+
+    try {
+        await speakWithVAPI(text);
+        resolve();
+    } catch (error) {
+        reject(error);
+    } finally {
+        isProcessingSpeech = false;
+        // Procesar siguiente en la cola
+        if (speechQueue.length > 0) {
+            setTimeout(processSpeechQueue, 100); // Pequeño delay entre peticiones
+        }
+    }
+}
 
 // Función para sintetizar voz con VAPI/ElevenLabs (optimizada)
 async function speakWithVAPI(text) {
@@ -731,9 +779,9 @@ async function speakWithVAPI(text) {
         try {
             console.log('Usando ElevenLabs API directamente');
 
-            // Crear AbortController para timeout
+            // Crear AbortController para timeout (aumentado a 15 segundos)
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout de 8 segundos
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // Timeout de 15 segundos
 
             const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VAPI_VOICE_ID}`, {
                 method: 'POST',
@@ -760,6 +808,54 @@ async function speakWithVAPI(text) {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Error de ElevenLabs API:', response.status, errorText);
+
+                // Manejar error 429 (Too Many Requests) - esperar y reintentar
+                if (response.status === 429) {
+                    console.warn('⚠️ Demasiadas peticiones simultáneas. Esperando antes de reintentar...');
+                    // Esperar 2 segundos antes de reintentar
+                    await sleep(2000);
+                    // Reintentar una vez
+                    const retryResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VAPI_VOICE_ID}`, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'audio/mpeg',
+                            'Content-Type': 'application/json',
+                            'xi-api-key': ELEVENLABS_API_KEY
+                        },
+                        body: JSON.stringify({
+                            text: text,
+                            model_id: 'eleven_multilingual_v2',
+                            voice_settings: {
+                                stability: 0.5,
+                                similarity_boost: 0.75,
+                                style: 0.0,
+                                use_speaker_boost: true
+                            }
+                        })
+                    });
+
+                    if (!retryResponse.ok) {
+                        console.warn('⚠️ Reintento falló. Continuando sin voz.');
+                        return;
+                    }
+
+                    // Usar la respuesta del reintento
+                    const audioBlob = await retryResponse.blob();
+                    const URLObject = window.URL || window.webkitURL;
+                    const audioUrl = URLObject.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+
+                    if (audioCache.size >= MAX_CACHE_SIZE) {
+                        const firstKey = audioCache.keys().next().value;
+                        audioCache.delete(firstKey);
+                    }
+                    audioCache.set(cacheKey, audio.cloneNode());
+
+                    await playAudio(audio);
+                    setTimeout(() => URLObject.revokeObjectURL(audioUrl), 10000);
+                    return;
+                }
+
                 throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
             }
 
@@ -791,14 +887,19 @@ async function speakWithVAPI(text) {
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.error('❌ Timeout al conectar con ElevenLabs (8 segundos)');
-                throw new Error('La conexión con ElevenLabs tardó demasiado. Por favor, verifica tu conexión a internet.');
+                console.error('❌ Timeout al conectar con ElevenLabs (15 segundos)');
+                console.warn('⚠️ Continuando sin voz debido a timeout. El juego seguirá funcionando normalmente.');
+                // No lanzar error, solo registrar y continuar
+                return;
             }
             console.error('❌ Error crítico con ElevenLabs:', error);
-            throw new Error(`No se pudo sintetizar voz con ElevenLabs: ${error.message}`);
+            console.warn('⚠️ Continuando sin voz debido a error. El juego seguirá funcionando normalmente.');
+            // No lanzar error, solo registrar y continuar
+            return;
         }
     } else {
-        throw new Error('ELEVENLABS_API_KEY no está configurada. Es obligatorio usar ElevenLabs.');
+        console.warn('⚠️ ELEVENLABS_API_KEY no está configurada. El juego continuará sin voz.');
+        return;
     }
 }
 
@@ -835,13 +936,32 @@ function playAudio(audio) {
     });
 }
 
+// Bandera para evitar mostrar resultado múltiples veces
+let hasShownResult = false;
+let lastResultKey = null;
+
 // Mostrar resultado online para ambos jugadores
 function showOnlineResult(resultData) {
+    // Crear una clave única para este resultado
+    const resultKey = `${resultData.player1Gesture}-${resultData.player2Gesture}-${resultData.rounds}`;
+
+    // Evitar mostrar el mismo resultado múltiples veces
+    if (hasShownResult && lastResultKey === resultKey) {
+        console.log('⚠️ Resultado ya mostrado, ignorando duplicado');
+        return;
+    }
+
+    hasShownResult = true;
+    lastResultKey = resultKey;
+
     // Determinar quién es el jugador local
     const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
     roomRef.child('players').once('value').then((snapshot) => {
         const players = snapshot.val();
-        if (!players) return;
+        if (!players) {
+            hasShownResult = false;
+            return;
+        }
 
         const playerIds = Object.keys(players);
         const isPlayer1 = playerIds[0] === gameState.online.playerId;
@@ -868,11 +988,13 @@ function showOnlineResult(resultData) {
         gameState.scores.opponent = resultData.player2Score;
         gameState.scores.rounds = resultData.rounds;
 
-        // Mostrar resultado
-        showResult(result, resultData.player1Gesture, resultData.player2Gesture, winner);
+        // Mostrar resultado (solo si no es el host, porque el host ya lo mostró)
+        if (!gameState.online.isHost) {
+            showResult(result, resultData.player1Gesture, resultData.player2Gesture, winner);
+        }
         updateScores();
 
-        // Anunciar con voz
+        // Anunciar con voz (solo una vez)
         const player1Name = GESTURES[resultData.player1Gesture].name.toLowerCase();
         const player2Name = GESTURES[resultData.player2Gesture].name.toLowerCase();
         let message = '';
@@ -886,10 +1008,11 @@ function showOnlineResult(resultData) {
 
         speak(message).catch(err => console.error('Error al anunciar:', err));
 
-        // Limpiar resultado después de mostrarlo
+        // Resetear bandera después de un momento
         setTimeout(() => {
-            roomRef.child('gameState/result').set(null);
-        }, 5000);
+            hasShownResult = false;
+            lastResultKey = null;
+        }, 3000);
     });
 }
 
@@ -1073,12 +1196,15 @@ function showJoinRoomUI() {
 
 // Crear sala
 async function createRoom() {
-    // Verificar que la cámara esté inicializada
+    // Verificar que la cámara esté inicializada (sin inicializar de nuevo si ya está)
     if (!webcam1) {
         const shouldInit = confirm('Para jugar online necesitas inicializar la cámara primero.\n\n¿Deseas inicializarla ahora?');
         if (shouldInit) {
             try {
-                await initializeCamera();
+                // Verificar nuevamente antes de inicializar (por si se inicializó mientras se mostraba el confirm)
+                if (!webcam1) {
+                    await initializeCamera();
+                }
             } catch (error) {
                 alert('Error al inicializar la cámara: ' + error.message);
                 return;
@@ -1317,12 +1443,15 @@ async function createRoom() {
 
 // Unirse a sala
 async function joinRoom() {
-    // Verificar que la cámara esté inicializada
+    // Verificar que la cámara esté inicializada (sin inicializar de nuevo si ya está)
     if (!webcam1) {
         const shouldInit = confirm('Para jugar online necesitas inicializar la cámara primero.\n\n¿Deseas inicializarla ahora?');
         if (shouldInit) {
             try {
-                await initializeCamera();
+                // Verificar nuevamente antes de inicializar (por si se inicializó mientras se mostraba el confirm)
+                if (!webcam1) {
+                    await initializeCamera();
+                }
             } catch (error) {
                 alert('Error al inicializar la cámara: ' + error.message);
                 return;
@@ -1531,18 +1660,35 @@ async function startOnlineGame() {
     }
 }
 
+// Bandera para evitar procesar resultado múltiples veces
+let isProcessingResult = false;
+
 // Verificar resultado del juego online
 async function checkOnlineGameResult() {
     if (!gameState.online.isOnline) return;
+
+    // Evitar procesar resultado múltiples veces
+    if (isProcessingResult) {
+        console.log('⚠️ Resultado ya está siendo procesado, ignorando llamada duplicada');
+        return;
+    }
+
+    isProcessingResult = true;
 
     const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
     const snapshot = await roomRef.child('players').once('value');
     const players = snapshot.val();
 
-    if (!players) return;
+    if (!players) {
+        isProcessingResult = false;
+        return;
+    }
 
     const playerIds = Object.keys(players);
-    if (playerIds.length < 2) return;
+    if (playerIds.length < 2) {
+        isProcessingResult = false;
+        return;
+    }
 
     // Verificar que ambos jugadores tengan gestos
     const player1Data = players[playerIds[0]];
@@ -1550,6 +1696,7 @@ async function checkOnlineGameResult() {
 
     if (!player1Data.gesture || !player2Data.gesture) {
         // Esperar un poco más
+        isProcessingResult = false;
         setTimeout(checkOnlineGameResult, 500);
         return;
     }
@@ -1563,8 +1710,54 @@ async function checkOnlineGameResult() {
     gameState.player1Gesture = localGesture;
     gameState.player2Gesture = opponentGesture;
 
-    // Comparar y mostrar resultado
-    compareGestures();
+    // Solo el host compara y muestra resultado (evitar duplicados)
+    if (gameState.online.isHost) {
+        // Comparar y mostrar resultado (sin voz, la voz vendrá del resultado en Firebase)
+        const player1 = gameState.player1Gesture;
+        const player2 = gameState.player2Gesture;
+
+        let result = '';
+        let winner = null;
+
+        if (player1 === player2) {
+            result = 'Empate';
+            winner = 'tie';
+        } else {
+            const p1Index = GESTURE_ORDER.indexOf(player1);
+            const p2Index = GESTURE_ORDER.indexOf(player2);
+            const diff = (p1Index - p2Index + 3) % 3;
+
+            if (diff === 1) {
+                result = 'Ganaste';
+                winner = 'player1';
+                gameState.scores.player1++;
+            } else {
+                result = 'Perdiste';
+                winner = 'opponent';
+                gameState.scores.opponent++;
+            }
+        }
+
+        gameState.scores.rounds++;
+
+        // Actualizar UI
+        updateScores();
+        showResult(result, player1, player2, winner);
+
+        // Anunciar con voz (solo el host, el otro jugador lo recibirá desde Firebase)
+        const player1Name = GESTURES[player1].name.toLowerCase();
+        const player2Name = GESTURES[player2].name.toLowerCase();
+        let message = '';
+        if (result === 'Empate') {
+            message = `Empate. Ambos eligieron ${player1Name}.`;
+        } else if (result === 'Ganaste') {
+            message = `Tú elegiste ${player1Name}. Tu oponente eligió ${player2Name}. ¡Ganaste esta ronda!`;
+        } else {
+            message = `Tú elegiste ${player1Name}. Tu oponente eligió ${player2Name}. Tu oponente gana esta ronda.`;
+        }
+
+        speak(message).catch(err => console.error('Error al anunciar:', err));
+    }
 
     // Enviar resultado a Firebase para que ambos jugadores lo vean
     // El resultado se calcula desde la perspectiva del jugador 1 (host)
@@ -1607,9 +1800,15 @@ async function checkOnlineGameResult() {
     await roomRef.child(`players/${playerIds[0]}/ready`).set(false);
     await roomRef.child(`players/${playerIds[1]}/gesture`).set(null);
     await roomRef.child(`players/${playerIds[1]}/ready`).set(false);
+    await roomRef.child('gameState/result').set(null); // Limpiar resultado anterior
 
     gameState.isPlaying = false;
     document.getElementById('startBtn').disabled = false;
+
+    // Resetear bandera después de un momento
+    setTimeout(() => {
+        isProcessingResult = false;
+    }, 2000);
 }
 
 // Modificar startGame para soportar modo online
