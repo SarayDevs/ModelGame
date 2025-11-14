@@ -137,6 +137,14 @@ function setupEventListeners() {
     document.getElementById('createRoomBtn').addEventListener('click', createRoom);
     document.getElementById('joinRoomBtn').addEventListener('click', showJoinRoom);
     document.getElementById('joinWithCodeBtn').addEventListener('click', joinRoom);
+    document.getElementById('startGameOnlineBtn').addEventListener('click', () => {
+        closeOnlineModal();
+        startGame();
+    });
+    document.getElementById('closeRoomModalBtn').addEventListener('click', () => {
+        // Solo cerrar el modal, no salir de la sala
+        closeOnlineModal();
+    });
     document.getElementById('cancelOnlineBtn').addEventListener('click', () => {
         if (gameState.online.isOnline) {
             if (confirm('¿Estás seguro de que deseas salir de la sala?')) {
@@ -1060,7 +1068,11 @@ async function createRoom() {
                         Haz clic en <strong>"Iniciar Juego"</strong> para comenzar.
                     `;
                     gameState.online.database.ref(`rooms/${roomCode}/status`).set('ready');
-                    // Habilitar botón de inicio
+                    // Mostrar y habilitar botón de inicio en el modal
+                    const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                    startGameOnlineBtn.style.display = 'inline-block';
+                    startGameOnlineBtn.disabled = false;
+                    // También habilitar botón principal
                     document.getElementById('startBtn').disabled = false;
                 } else {
                     document.getElementById('roomStatus').innerHTML = `
@@ -1068,6 +1080,7 @@ async function createRoom() {
                         <span style="font-size: 1.5rem; letter-spacing: 3px;">${roomCode}</span><br><br>
                         Esperando a que otro jugador se una...
                     `;
+                    document.getElementById('startGameOnlineBtn').style.display = 'none';
                     document.getElementById('startBtn').disabled = true;
                 }
             }
@@ -1240,7 +1253,8 @@ async function joinRoom() {
         document.getElementById('copyCodeBtn').style.display = 'none';
         document.getElementById('roomStatus').innerHTML = `
             <strong style="color: #4ade80;">✅ Conectado exitosamente</strong><br>
-            Esperando a que el anfitrión inicie el juego...
+            Esperando a que el anfitrión inicie el juego...<br>
+            <small style="opacity: 0.8;">Puedes cerrar esta ventana y seguir conectado.</small>
         `;
         document.getElementById('roomCodeInput').style.display = 'none';
         document.getElementById('joinWithCodeBtn').style.display = 'none';

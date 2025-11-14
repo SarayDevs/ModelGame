@@ -30,6 +30,7 @@
                     <button id="joinRoomBtn" class="btn btn-secondary" style="margin: 10px; width: 200px;">Unirse a Sala</button>
                 </div>
                 <div id="roomCodeSection" class="hidden">
+                    <button id="closeRoomModalBtn" class="btn-close" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.5rem; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
                     <h3 id="roomCodeTitle"></h3>
                     <div id="roomCodeDisplay" style="font-size: 2.5rem; font-weight: bold; margin: 20px; padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; letter-spacing: 5px;"></div>
                     <button id="copyCodeBtn" class="btn btn-primary" style="margin: 10px; display: none;">📋 Copiar Código</button>
@@ -37,6 +38,7 @@
                     <div id="roomPlayers" style="margin: 15px 0;"></div>
                     <input type="text" id="roomCodeInput" placeholder="Ingresa el código de la sala (6 caracteres)" style="padding: 10px; font-size: 1.2rem; margin: 10px; width: 280px; text-align: center; border-radius: 5px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; text-transform: uppercase;" maxlength="6">
                     <div style="margin: 10px;">
+                        <button id="startGameOnlineBtn" class="btn btn-primary" style="margin: 5px; display: none; font-size: 1.2rem; padding: 12px 24px;">🎮 Iniciar Juego</button>
                         <button id="joinWithCodeBtn" class="btn btn-primary" style="margin: 5px;">Unirse</button>
                         <button id="cancelOnlineBtn" class="btn btn-secondary" style="margin: 5px;">Cancelar / Salir</button>
                     </div>
@@ -115,9 +117,28 @@
     </div>
 
     <!-- Widget de VAPI -->
-    <vapi-widget 
-        assistant-id="a93c4dbc-b279-4960-8901-14ef841ea4f6" 
-        public-key="d18dd720-b478-4f1a-8cd4-c2c1b8279b37">
+    <vapi-widget
+        public-key="d18dd720-b478-4f1a-8cd4-c2c1b8279b37"
+        assistant-id="a93c4dbc-b279-4960-8901-14ef841ea4f6"
+        mode="voice"
+        theme="dark"
+        base-bg-color="#000000"
+        accent-color="#14B8A6"
+        cta-button-color="#000000"
+        cta-button-text-color="#ffffff"
+        border-radius="large"
+        size="full"
+        position="bottom-right"
+        title="TALK WITH AI"
+        start-button-text="Start"
+        end-button-text="End Call"
+        chat-first-message="Hey, How can I help you today?"
+        chat-placeholder="Type your message..."
+        voice-show-transcript="true"
+        consent-required="true"
+        consent-title="Terms and conditions"
+        consent-content="By clicking &quot;Agree,&quot; and each time I interact with this AI agent, I consent to the recording, storage, and sharing of my communications with third-party service providers, and as otherwise described in our Terms of Service."
+        consent-storage-key="vapi_widget_consent">
     </vapi-widget>
     <script
         src="https://unpkg.com/@vapi-ai/client-sdk-react/dist/embed/widget.umd.js"
