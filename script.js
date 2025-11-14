@@ -563,9 +563,21 @@ function compareGestures() {
         if (!player1 || player1 === 'Indeterminado') missingGestures.push('Jugador 1');
         if (!player2 || player2 === 'Indeterminado') missingGestures.push(gameState.mode === 'system' ? 'Sistema' : 'Jugador 2');
 
-        alert(`No se pudo detectar el gesto correctamente.\n\n${missingGestures.join(' y ')} ${missingGestures.length > 1 ? 'no tienen' : 'no tiene'} un gesto válido (mínimo 50% de confianza requerido).\n\nPor favor, intenta de nuevo mostrando el gesto más claramente.`);
+        const errorMessage = `No se pudo detectar el gesto correctamente. ${missingGestures.join(' y ')} ${missingGestures.length > 1 ? 'no tienen' : 'no tiene'} un gesto válido. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.`;
+
+        // Anunciar con voz
+        speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+
+        alert(errorMessage);
         gameState.isPlaying = false;
         document.getElementById('startBtn').disabled = false;
+
+        // Si es online, notificar al otro jugador
+        if (gameState.mode === 'online' && gameState.online.database) {
+            const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+            roomRef.child('gameState/error').set('indeterminado');
+        }
+
         return;
     }
 
@@ -682,15 +694,33 @@ async function speak(text) {
     }
 }
 
-// Función para sintetizar voz con VAPI/ElevenLabs
+// Cache para audio de VAPI
+const audioCache = new Map();
+const MAX_CACHE_SIZE = 10;
+
+// Función para sintetizar voz con VAPI/ElevenLabs (optimizada)
 async function speakWithVAPI(text) {
     console.log('🎙️ Usando VAPI/ElevenLabs para sintetizar:', text);
     console.log('🎙️ Voice ID:', VAPI_VOICE_ID);
+
+    // Verificar cache primero
+    const cacheKey = text.substring(0, 50); // Usar primeros 50 caracteres como clave
+    if (audioCache.has(cacheKey)) {
+        console.log('✅ Usando audio del cache');
+        const cachedAudio = audioCache.get(cacheKey).cloneNode();
+        await playAudio(cachedAudio);
+        return;
+    }
 
     // Opción 1: Usar ElevenLabs directamente (VAPI usa ElevenLabs internamente)
     if (ELEVENLABS_API_KEY) {
         try {
             console.log('Usando ElevenLabs API directamente');
+
+            // Crear AbortController para timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout de 8 segundos
+
             const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VAPI_VOICE_ID}`, {
                 method: 'POST',
                 headers: {
@@ -707,8 +737,11 @@ async function speakWithVAPI(text) {
                         style: 0.0,
                         use_speaker_boost: true
                     }
-                })
+                }),
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -727,40 +760,123 @@ async function speakWithVAPI(text) {
             const audioUrl = URLObject.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
 
-            // Promesa para esperar a que el audio se cargue y reproduzca
-            await new Promise((resolve, reject) => {
-                audio.onloadeddata = () => {
-                    console.log('✅ Audio de ElevenLabs cargado, reproduciendo...');
-                };
+            // Guardar en cache (limitar tamaño)
+            if (audioCache.size >= MAX_CACHE_SIZE) {
+                const firstKey = audioCache.keys().next().value;
+                audioCache.delete(firstKey);
+            }
+            audioCache.set(cacheKey, audio.cloneNode());
 
-                audio.onended = () => {
-                    console.log('✅ Audio de ElevenLabs reproducido correctamente');
-                    URLObject.revokeObjectURL(audioUrl);
-                    resolve();
-                };
+            // Reproducir audio
+            await playAudio(audio);
 
-                audio.onerror = (error) => {
-                    console.error('❌ Error al reproducir audio de ElevenLabs:', error);
-                    URLObject.revokeObjectURL(audioUrl);
-                    reject(new Error('Error al reproducir el audio: ' + error.message));
-                };
-
-                // Intentar reproducir
-                audio.play().then(() => {
-                    console.log('▶️ Reproduciendo audio de ElevenLabs...');
-                }).catch(reject);
-            });
+            // Limpiar URL después de un tiempo
+            setTimeout(() => URLObject.revokeObjectURL(audioUrl), 10000);
 
             return;
 
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.error('❌ Timeout al conectar con ElevenLabs (8 segundos)');
+                throw new Error('La conexión con ElevenLabs tardó demasiado. Por favor, verifica tu conexión a internet.');
+            }
             console.error('❌ Error crítico con ElevenLabs:', error);
-            // NO continuar con otras opciones - lanzar error
             throw new Error(`No se pudo sintetizar voz con ElevenLabs: ${error.message}`);
         }
     } else {
         throw new Error('ELEVENLABS_API_KEY no está configurada. Es obligatorio usar ElevenLabs.');
     }
+}
+
+// Función auxiliar para reproducir audio con timeout
+function playAudio(audio) {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('Timeout al cargar el audio'));
+        }, 5000);
+
+        audio.onloadeddata = () => {
+            console.log('✅ Audio cargado, reproduciendo...');
+        };
+
+        audio.onended = () => {
+            console.log('✅ Audio reproducido correctamente');
+            clearTimeout(timeout);
+            resolve();
+        };
+
+        audio.onerror = (error) => {
+            console.error('❌ Error al reproducir audio:', error);
+            clearTimeout(timeout);
+            reject(new Error('Error al reproducir el audio: ' + error.message));
+        };
+
+        // Intentar reproducir
+        audio.play().then(() => {
+            console.log('▶️ Reproduciendo audio...');
+        }).catch((err) => {
+            clearTimeout(timeout);
+            reject(err);
+        });
+    });
+}
+
+// Mostrar resultado online para ambos jugadores
+function showOnlineResult(resultData) {
+    // Determinar quién es el jugador local
+    const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+    roomRef.child('players').once('value').then((snapshot) => {
+        const players = snapshot.val();
+        if (!players) return;
+
+        const playerIds = Object.keys(players);
+        const isPlayer1 = playerIds[0] === gameState.online.playerId;
+
+        // Determinar resultado desde la perspectiva del jugador local
+        let result, winner;
+        if (resultData.result === 'Empate') {
+            result = 'Empate';
+            winner = 'tie';
+        } else {
+            // El resultado viene desde la perspectiva del jugador 1
+            if (isPlayer1) {
+                result = resultData.result;
+                winner = result === 'Ganaste' ? 'player1' : 'opponent';
+            } else {
+                // Invertir resultado para jugador 2
+                result = resultData.result === 'Ganaste' ? 'Perdiste' : 'Ganaste';
+                winner = result === 'Ganaste' ? 'player1' : 'opponent';
+            }
+        }
+
+        // Actualizar scores localmente
+        gameState.scores.player1 = resultData.player1Score;
+        gameState.scores.opponent = resultData.player2Score;
+        gameState.scores.rounds = resultData.rounds;
+
+        // Mostrar resultado
+        showResult(result, resultData.player1Gesture, resultData.player2Gesture, winner);
+        updateScores();
+
+        // Anunciar con voz
+        const player1Name = GESTURES[resultData.player1Gesture].name.toLowerCase();
+        const player2Name = GESTURES[resultData.player2Gesture].name.toLowerCase();
+        let message = '';
+        if (result === 'Empate') {
+            message = `Empate. Ambos eligieron ${player1Name}.`;
+        } else if (result === 'Ganaste') {
+            message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. ¡Ganaste esta ronda!`;
+        } else {
+            message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tu oponente gana esta ronda.`;
+        }
+
+        speak(message).catch(err => console.error('Error al anunciar:', err));
+
+        // Limpiar resultado después de mostrarlo
+        setTimeout(() => {
+            roomRef.child('gameState/result').set(null);
+        }, 5000);
+    });
 }
 
 // Cargar voces disponibles al iniciar
@@ -810,6 +926,9 @@ async function toggleMode() {
     gameState.mode = gameState.mode === 'system' ? 'player' : 'system';
 
     if (gameState.mode === 'player') {
+        // Modo jugador vs jugador - abrir modal online directamente
+        openOnlineModal();
+
         // Ocultar segunda cámara hasta que se inicialice
         document.getElementById('webcam-container-2').classList.add('hidden');
         document.getElementById('label-container-2').classList.add('hidden');
@@ -1104,6 +1223,19 @@ async function createRoom() {
             const onlineGameState = snapshot.val();
             if (onlineGameState) {
                 handleOnlineGameState(onlineGameState);
+
+                // Si hay un resultado, mostrarlo
+                if (onlineGameState.result) {
+                    showOnlineResult(onlineGameState.result);
+                }
+
+                // Si hay error de indeterminado
+                if (onlineGameState.error === 'indeterminado') {
+                    const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
+                    speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+                    alert(errorMessage);
+                    roomRef.child('gameState/error').set(null); // Limpiar error
+                }
             }
         });
 
@@ -1265,6 +1397,19 @@ async function joinRoom() {
             const onlineGameState = snapshot.val();
             if (onlineGameState) {
                 handleOnlineGameState(onlineGameState);
+
+                // Si hay un resultado, mostrarlo
+                if (onlineGameState.result) {
+                    showOnlineResult(onlineGameState.result);
+                }
+
+                // Si hay error de indeterminado
+                if (onlineGameState.error === 'indeterminado') {
+                    const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
+                    speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+                    alert(errorMessage);
+                    roomRef.child('gameState/error').set(null); // Limpiar error
+                }
             }
         });
 
@@ -1388,6 +1533,32 @@ async function checkOnlineGameResult() {
 
     // Comparar y mostrar resultado
     compareGestures();
+
+    // Enviar resultado a Firebase para que ambos jugadores lo vean
+    // El resultado se calcula desde la perspectiva del jugador 1 (host)
+    const p1Index = GESTURE_ORDER.indexOf(localGesture);
+    const p2Index = GESTURE_ORDER.indexOf(opponentGesture);
+    const diff = (p1Index - p2Index + 3) % 3;
+
+    let resultFromPlayer1Perspective;
+    if (diff === 0) {
+        resultFromPlayer1Perspective = 'Empate';
+    } else if (diff === 1) {
+        resultFromPlayer1Perspective = 'Ganaste'; // Jugador 1 gana
+    } else {
+        resultFromPlayer1Perspective = 'Perdiste'; // Jugador 1 pierde
+    }
+
+    const resultData = {
+        result: resultFromPlayer1Perspective,
+        player1Gesture: localGesture,
+        player2Gesture: opponentGesture,
+        player1Score: isPlayer1 ? gameState.scores.player1 : gameState.scores.opponent,
+        player2Score: isPlayer1 ? gameState.scores.opponent : gameState.scores.player1,
+        rounds: gameState.scores.rounds
+    };
+
+    await roomRef.child('gameState/result').set(resultData);
 
     // Actualizar marcadores en Firebase
     if (isPlayer1) {
