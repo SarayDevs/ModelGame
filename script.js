@@ -133,8 +133,18 @@ function setupEventListeners() {
     document.getElementById('closeModal').addEventListener('click', closeModal);
 
     // Event listeners para modo online
-    document.getElementById('onlineBtn').addEventListener('click', openOnlineModal);
     document.getElementById('createRoomBtn').addEventListener('click', createRoom);
+    document.getElementById('closeOnlineModalBtn').addEventListener('click', () => {
+        // Solo cerrar el modal sin salir de la sala si ya está conectado
+        if (!gameState.online.isOnline) {
+            closeOnlineModal();
+        } else {
+            // Si está conectado, preguntar si quiere salir
+            if (confirm('¿Deseas cerrar esta ventana? Seguirás conectado a la sala.')) {
+                closeOnlineModal();
+            }
+        }
+    });
     document.getElementById('joinRoomBtn').addEventListener('click', showJoinRoom);
     document.getElementById('joinWithCodeBtn').addEventListener('click', joinRoom);
     document.getElementById('startGameOnlineBtn').addEventListener('click', () => {
@@ -191,7 +201,11 @@ async function initializeCamera() {
 
         initBtn.textContent = '✓ Cámara Inicializada';
         initBtn.style.background = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
-        startBtn.disabled = false;
+
+        // Habilitar botón de inicio solo si está en modo sistema
+        if (gameState.mode === 'system') {
+            startBtn.disabled = false;
+        }
 
         console.log('Cámara inicializada correctamente');
     } catch (error) {
@@ -952,9 +966,11 @@ async function toggleMode() {
             webcam2 = null;
             model2 = null;
         }
-        // Si la cámara del jugador 1 está inicializada, habilitar inicio
+        // Modo sistema - habilitar botón de iniciar juego si la cámara está inicializada
         if (webcam1) {
             startBtn.disabled = false;
+        } else {
+            startBtn.disabled = true;
         }
     }
 
@@ -1468,19 +1484,35 @@ async function startOnlineGame() {
         gameState.isPlaying = true;
         const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
 
-        // Iniciar cuenta regresiva sincronizada
+        // Iniciar cuenta regresiva sincronizada - ambos jugadores verán el countdown
+        showCountdown(3);
         await roomRef.child('gameState/countdown').set(3);
         await sleep(1000);
+
+        showCountdown(2);
         await roomRef.child('gameState/countdown').set(2);
         await sleep(1000);
+
+        showCountdown(1);
         await roomRef.child('gameState/countdown').set(1);
         await sleep(1000);
+
+        showCountdown(0); // Mostrar "¡YA!"
         await roomRef.child('gameState/countdown').set(0);
+        await sleep(500);
+
         await roomRef.child('gameState/isPlaying').set(true);
     }
 
     // Ambos jugadores capturan su gesto cuando el juego inicia
-    await sleep(1000); // Esperar después del "¡YA!"
+    // Esperar un momento después del "¡YA!" para capturar
+    if (!gameState.online.isHost) {
+        // El jugador no-host espera a que el host inicie el juego
+        await sleep(500);
+    } else {
+        await sleep(1000); // El host espera después de mostrar "¡YA!"
+    }
+
     await captureGestures();
 
     if (gameState.player1Gesture && gameState.player1Gesture !== 'Indeterminado') {
