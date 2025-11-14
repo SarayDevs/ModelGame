@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piedra, Papel o Tijeras - IA</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Piedra, Papel o Tijeras</h1>
+            <p class="subtitle">Controlado por Visión Artificial y Voz</p>
+        </header>
+
+        <div class="controls">
+            <button id="initCameraBtn" class="btn btn-primary">Inicializar Cámara</button>
+            <button id="startBtn" class="btn btn-primary" disabled>Iniciar Juego</button>
+            <button id="resetBtn" class="btn btn-secondary">Reiniciar Marcador</button>
+            <button id="modeBtn" class="btn btn-mode">Modo: Jugador vs Sistema</button>
+            <button id="onlineBtn" class="btn btn-online">Jugar Online</button>
+        </div>
+
+        <!-- Modal para Juego Online -->
+        <div id="onlineModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>🎮 Juego Online</h2>
+                <div id="onlineMenu">
+                    <button id="createRoomBtn" class="btn btn-primary" style="margin: 10px; width: 200px;">Crear Sala</button>
+                    <button id="joinRoomBtn" class="btn btn-secondary" style="margin: 10px; width: 200px;">Unirse a Sala</button>
+                </div>
+                <div id="roomCodeSection" class="hidden">
+                    <h3 id="roomCodeTitle"></h3>
+                    <div id="roomCodeDisplay" style="font-size: 2.5rem; font-weight: bold; margin: 20px; padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; letter-spacing: 5px;"></div>
+                    <button id="copyCodeBtn" class="btn btn-primary" style="margin: 10px; display: none;">📋 Copiar Código</button>
+                    <p id="roomStatus" style="margin: 10px; font-size: 1.1rem;"></p>
+                    <div id="roomPlayers" style="margin: 15px 0;"></div>
+                    <input type="text" id="roomCodeInput" placeholder="Ingresa el código de la sala (6 caracteres)" style="padding: 10px; font-size: 1.2rem; margin: 10px; width: 280px; text-align: center; border-radius: 5px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; text-transform: uppercase;" maxlength="6">
+                    <div style="margin: 10px;">
+                        <button id="joinWithCodeBtn" class="btn btn-primary" style="margin: 5px;">Unirse</button>
+                        <button id="cancelOnlineBtn" class="btn btn-secondary" style="margin: 5px;">Cancelar / Salir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <!-- Jugador 1 (Izquierda) -->
+            <div class="player-section" id="player1Section">
+                <h2>Jugador 1</h2>
+                <div id="webcam-container-1" class="webcam-container"></div>
+                <div id="label-container-1" class="label-container"></div>
+                <div class="gesture-display" id="gesture1">
+                    <span class="emoji">👤</span>
+                    <p class="gesture-text">Esperando...</p>
+                </div>
+            </div>
+
+            <!-- Contador y Resultado -->
+            <div class="center-section">
+                <div id="countdown" class="countdown hidden">3</div>
+                <div id="result-display" class="result-display hidden">
+                    <h3 id="result-text"></h3>
+                    <div class="scoreboard">
+                        <div class="score-item">
+                            <span>Jugador 1</span>
+                            <span id="score-player1">0</span>
+                        </div>
+                        <div class="score-item">
+                            <span id="opponent-label">Sistema</span>
+                            <span id="score-opponent">0</span>
+                        </div>
+                        <div class="score-item">
+                            <span>Rondas</span>
+                            <span id="rounds-count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sistema o Jugador 2 (Derecha) -->
+            <div class="player-section" id="player2Section">
+                <h2 id="opponent-title">Sistema</h2>
+                <div id="webcam-container-2" class="webcam-container hidden"></div>
+                <div id="label-container-2" class="label-container hidden"></div>
+                <div class="gesture-display" id="gesture2">
+                    <span class="emoji" id="system-emoji">🤖</span>
+                    <p class="gesture-text" id="system-text">Esperando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Resultado -->
+        <div id="resultModal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="modal-title">Resultado</h2>
+                <p id="modal-message"></p>
+                <div class="modal-scores">
+                    <div class="modal-score-item">
+                        <span>Jugador 1:</span>
+                        <span id="modal-score-1">0</span>
+                    </div>
+                    <div class="modal-score-item">
+                        <span id="modal-opponent-label">Sistema:</span>
+                        <span id="modal-score-2">0</span>
+                    </div>
+                    <div class="modal-score-item">
+                        <span>Rondas:</span>
+                        <span id="modal-rounds">0</span>
+                    </div>
+                </div>
+                <button id="closeModal" class="btn btn-primary">Continuar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Widget de VAPI -->
+    <vapi-widget 
+        assistant-id="a93c4dbc-b279-4960-8901-14ef841ea4f6" 
+        public-key="d18dd720-b478-4f1a-8cd4-c2c1b8279b37">
+    </vapi-widget>
+    <script
+        src="https://unpkg.com/@vapi-ai/client-sdk-react/dist/embed/widget.umd.js"
+        async
+        type="text/javascript">
+    </script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- Configuración de Firebase (debes configurar tus credenciales) -->
+    <script src="firebase-config.js"></script>
+
+    <!-- Scripts de TensorFlow y Teachable Machine -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js" 
+            onload="console.log('TensorFlow.js cargado')" 
+            onerror="console.error('Error al cargar TensorFlow.js')"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"
+            onload="console.log('Teachable Machine Image cargado')" 
+            onerror="console.error('Error al cargar Teachable Machine Image')"></script>
+    
+    <!-- Script principal - se carga después de que las librerías estén listas -->
+    <script>
+        // Función para esperar a que las librerías se carguen
+        function waitForLibraries(callback, maxAttempts = 50) {
+            let attempts = 0;
+            const checkInterval = setInterval(function() {
+                attempts++;
+                const tfLoaded = typeof tf !== 'undefined';
+                // Verificar diferentes posibles nombres de la variable
+                const tmLoaded = typeof tmImage !== 'undefined' || 
+                                typeof tm !== 'undefined' || 
+                                (window.tmImage !== undefined) ||
+                                (window.tm !== undefined);
+                
+                if (tfLoaded && tmLoaded) {
+                    clearInterval(checkInterval);
+                    console.log('✓ Todas las librerías cargadas correctamente');
+                    console.log('TensorFlow:', typeof tf);
+                    // Intentar encontrar la variable correcta
+                    if (typeof tmImage !== 'undefined') {
+                        window.tmImage = tmImage;
+                        console.log('Teachable Machine (tmImage):', typeof tmImage);
+                    } else if (typeof tm !== 'undefined') {
+                        window.tmImage = tm;
+                        console.log('Teachable Machine (tm):', typeof tm);
+                    }
+                    callback();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.error('Timeout esperando librerías después de', attempts, 'intentos');
+                    console.log('TensorFlow cargado:', tfLoaded);
+                    console.log('tmImage:', typeof tmImage);
+                    console.log('tm:', typeof tm);
+                    console.log('Variables globales relacionadas:', Object.keys(window).filter(k => 
+                        k.toLowerCase().includes('tm') || 
+                        k.toLowerCase().includes('teachable') ||
+                        k.toLowerCase().includes('image')
+                    ));
+                    alert('Error: Las librerías no se cargaron completamente.\n\nPor favor:\n1. Verifica tu conexión a internet\n2. Recarga la página (F5)\n3. Abre la consola del navegador (F12) para más detalles');
+                } else {
+                    if (attempts % 10 === 0) {
+                        console.log('Esperando librerías... Intento ' + attempts + '/' + maxAttempts);
+                        console.log('TF:', tfLoaded, 'TM:', tmLoaded);
+                    }
+                }
+            }, 200);
+        }
+        
+        // Esperar a que la página y los scripts se carguen
+        window.addEventListener('load', function() {
+            console.log('Página cargada, esperando librerías...');
+            waitForLibraries(function() {
+                loadMainScript();
+            });
+        });
+        
+        function loadMainScript() {
+            // Cargar el script principal
+            const script = document.createElement('script');
+            script.src = 'script.js';
+            script.async = false;
+            script.onload = function() {
+                console.log('✓ Script principal cargado');
+            };
+            script.onerror = function() {
+                alert('Error al cargar script.js. Verifica que el archivo exista.');
+            };
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+</html>
+
