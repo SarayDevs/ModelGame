@@ -1,5 +1,5 @@
 // Configuración del modelo Teachable Machine
-const URL = "./tm-my-image-model/";
+const MODEL_URL = "./tm-my-image-model/";
 let model1, model2;
 let webcam1, webcam2;
 let labelContainer1, labelContainer2;
@@ -126,69 +126,148 @@ function checkLibrariesLoaded() {
 })();
 
 function setupEventListeners() {
-    document.getElementById('initCameraBtn').addEventListener('click', initializeCamera);
-    document.getElementById('startBtn').addEventListener('click', startGame);
-    document.getElementById('resetBtn').addEventListener('click', resetScores);
-    document.getElementById('modeBtn').addEventListener('click', toggleMode);
-    document.getElementById('closeModal').addEventListener('click', closeModal);
+    // Agregar event listeners a todos los botones con estos IDs (pueden estar en múltiples secciones)
+    const initCameraBtns = document.querySelectorAll('#initCameraBtn');
+    initCameraBtns.forEach(btn => {
+        btn.addEventListener('click', initializeCamera);
+    });
 
-    // Event listeners para modo online
-    document.getElementById('createRoomBtn').addEventListener('click', createRoom);
-    document.getElementById('leaveOnlineBtn').addEventListener('click', () => {
-        if (gameState.online.isOnline) {
-            if (confirm('¿Estás seguro de que deseas salir del modo online y cerrar la sala?')) {
-                leaveRoom();
-                closeOnlineModal();
-                // Restaurar UI
-                updateUI();
-            }
-        }
+    const startBtns = document.querySelectorAll('#startBtn');
+    startBtns.forEach(btn => {
+        btn.addEventListener('click', startGame);
     });
-    document.getElementById('closeOnlineModalBtn').addEventListener('click', () => {
-        // Solo cerrar el modal sin salir de la sala si ya está conectado
-        if (!gameState.online.isOnline) {
+
+    const resetBtns = document.querySelectorAll('#resetBtn');
+    resetBtns.forEach(btn => {
+        btn.addEventListener('click', resetScores);
+    });
+
+    const salaBtn = document.getElementById('salaBtn');
+    if (salaBtn) {
+        salaBtn.addEventListener('click', () => {
+            // Abrir modal de sala directamente
+            openOnlineModal();
+        });
+    }
+
+    const closeModalBtn = document.getElementById('closeModal');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeModal);
+    }
+
+    // Event listeners para modo online (con verificaciones de existencia)
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    if (createRoomBtn) {
+        createRoomBtn.addEventListener('click', createRoom);
+    }
+
+    // Agregar event listener a todos los botones leaveOnlineBtn (pueden estar en múltiples secciones)
+    const leaveOnlineBtns = document.querySelectorAll('#leaveOnlineBtn');
+    leaveOnlineBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (gameState.online.isOnline) {
+                if (confirm('¿Estás seguro de que deseas salir del modo online y cerrar la sala?')) {
+                    leaveRoom();
+                    closeOnlineModal();
+                    // Restaurar UI
+                    updateUI();
+                }
+            }
+        });
+    });
+
+    const closeOnlineModalBtn = document.getElementById('closeOnlineModalBtn');
+    if (closeOnlineModalBtn) {
+        closeOnlineModalBtn.addEventListener('click', () => {
+            // Solo cerrar el modal sin salir de la sala si ya está conectado
+            if (!gameState.online.isOnline) {
+                closeOnlineModal();
+            } else {
+                // Si está conectado, preguntar si quiere salir
+                if (confirm('¿Deseas cerrar esta ventana? Seguirás conectado a la sala.')) {
+                    closeOnlineModal();
+                }
+            }
+        });
+    }
+
+    const joinRoomBtn = document.getElementById('joinRoomBtn');
+    if (joinRoomBtn) {
+        joinRoomBtn.addEventListener('click', showJoinRoom);
+    }
+
+    const joinWithCodeBtn = document.getElementById('joinWithCodeBtn');
+    if (joinWithCodeBtn) {
+        joinWithCodeBtn.addEventListener('click', joinRoom);
+    }
+
+    const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+    if (startGameOnlineBtn) {
+        startGameOnlineBtn.addEventListener('click', () => {
             closeOnlineModal();
-        } else {
-            // Si está conectado, preguntar si quiere salir
-            if (confirm('¿Deseas cerrar esta ventana? Seguirás conectado a la sala.')) {
-                closeOnlineModal();
-            }
-        }
-    });
-    document.getElementById('joinRoomBtn').addEventListener('click', showJoinRoom);
-    document.getElementById('joinWithCodeBtn').addEventListener('click', joinRoom);
-    document.getElementById('startGameOnlineBtn').addEventListener('click', () => {
-        closeOnlineModal();
-        startGame();
-    });
-    document.getElementById('closeRoomModalBtn').addEventListener('click', () => {
-        // Solo cerrar el modal, no salir de la sala
-        closeOnlineModal();
-    });
-    document.getElementById('cancelOnlineBtn').addEventListener('click', () => {
-        if (gameState.online.isOnline) {
-            if (confirm('¿Estás seguro de que deseas salir de la sala?')) {
-                leaveRoom();
-                closeOnlineModal();
-            }
-        } else {
+            startGame();
+        });
+    }
+
+    const closeRoomModalBtn = document.getElementById('closeRoomModalBtn');
+    if (closeRoomModalBtn) {
+        closeRoomModalBtn.addEventListener('click', () => {
+            // Solo cerrar el modal, no salir de la sala
             closeOnlineModal();
-        }
-    });
-    document.getElementById('copyCodeBtn').addEventListener('click', copyRoomCode);
+        });
+    }
+
+    const cancelOnlineBtn = document.getElementById('cancelOnlineBtn');
+    if (cancelOnlineBtn) {
+        cancelOnlineBtn.addEventListener('click', () => {
+            if (gameState.online.isOnline) {
+                if (confirm('¿Estás seguro de que deseas salir de la sala?')) {
+                    leaveRoom();
+                    closeOnlineModal();
+                }
+            } else {
+                closeOnlineModal();
+            }
+        });
+    }
+
+    const copyCodeBtn = document.getElementById('copyCodeBtn');
+    if (copyCodeBtn) {
+        copyCodeBtn.addEventListener('click', copyRoomCode);
+    }
 
     // Permitir Enter para unirse a sala
-    document.getElementById('roomCodeInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            joinRoom();
-        }
-    });
+    const roomCodeInput = document.getElementById('roomCodeInput');
+    if (roomCodeInput) {
+        roomCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+    }
 }
 
 // Inicializar cámara (función principal llamada por el botón)
 async function initializeCamera() {
-    const initBtn = document.getElementById('initCameraBtn');
-    const startBtn = document.getElementById('startBtn');
+    // Buscar botones en la sección activa
+    const activeSection = document.querySelector('.section.active');
+    let initBtn = null;
+    let startBtn = null;
+
+    if (activeSection) {
+        initBtn = activeSection.querySelector('#initCameraBtn');
+        startBtn = activeSection.querySelector('#startBtn');
+    }
+
+    // Si no se encuentran, buscar en todo el documento
+    if (!initBtn) initBtn = document.getElementById('initCameraBtn');
+    if (!startBtn) startBtn = document.getElementById('startBtn');
+
+    if (!initBtn || !startBtn) {
+        console.error('No se encontraron los botones de control');
+        alert('Error: No se encontraron los controles. Por favor, recarga la página.');
+        return;
+    }
 
     try {
         initBtn.disabled = true;
@@ -226,8 +305,55 @@ async function initializeCamera() {
         initBtn.style.background = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
 
         // Habilitar botón de inicio solo si está en modo sistema
+        // En modo online, el botón solo se habilita cuando hay 2 jugadores (se maneja en createRoom/joinRoom)
         if (gameState.mode === 'system') {
             startBtn.disabled = false;
+        } else if (gameState.mode === 'online' || gameState.online.isOnline) {
+            // En modo online, verificar que haya 2 jugadores Y la cámara esté lista antes de habilitar
+            if (gameState.online.database && gameState.online.roomCode) {
+                try {
+                    const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+                    const snapshot = await roomRef.child('players').once('value');
+                    const players = snapshot.val();
+                    const playerCount = players ? Object.keys(players).length : 0;
+
+                    // Verificar que haya 2 jugadores Y la cámara esté lista
+                    const isCameraReady = webcam1 && (
+                        webcam1.isPlaying ||
+                        (webcam1.canvas && webcam1.canvas.width > 0) ||
+                        (webcam1.video && webcam1.video.readyState >= 2) ||
+                        model1
+                    );
+
+                    if (playerCount >= 2 && isCameraReady) {
+                        const startBtns = document.querySelectorAll('#startBtn');
+                        startBtns.forEach(btn => {
+                            btn.disabled = false;
+                        });
+                        console.log('✅ Botón "Iniciar Juego" habilitado después de inicializar cámara (2 jugadores + cámara)');
+                    } else {
+                        const startBtns = document.querySelectorAll('#startBtn');
+                        startBtns.forEach(btn => {
+                            btn.disabled = true;
+                        });
+                        console.log('🔒 Botón "Iniciar Juego" deshabilitado (condiciones no cumplidas)', {
+                            playerCount,
+                            isCameraReady
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error al verificar jugadores al inicializar cámara:', error);
+                    const startBtns = document.querySelectorAll('#startBtn');
+                    startBtns.forEach(btn => {
+                        btn.disabled = true;
+                    });
+                }
+            } else {
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = true;
+                });
+            }
         }
 
         console.log('Cámara inicializada correctamente');
@@ -248,8 +374,8 @@ async function initPlayer1() {
             throw new Error('Teachable Machine Image no está cargado. Por favor, recarga la página.');
         }
 
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
+        const modelURL = MODEL_URL + "model.json";
+        const metadataURL = MODEL_URL + "metadata.json";
 
         // Verificar si el modelo y la cámara ya están inicializados
         if (model1 && webcam1 && webcam1.isPlaying) {
@@ -274,13 +400,35 @@ async function initPlayer1() {
         await webcam1.play();
         console.log('Cámara iniciada correctamente');
 
-        const container = document.getElementById("webcam-container-1");
-        if (container && webcam1.canvas) {
-            container.innerHTML = ''; // Limpiar contenedor
-            container.appendChild(webcam1.canvas);
+        // Buscar el contenedor de la sección activa
+        const activeSection = document.querySelector('.section.active');
+        let container = null;
+        let labelContainer = null;
+
+        if (activeSection) {
+            // Buscar dentro de la sección activa
+            container = activeSection.querySelector("#webcam-container-1");
+            labelContainer = activeSection.querySelector("#label-container-1");
         }
 
-        labelContainer1 = document.getElementById("label-container-1");
+        // Si no se encuentra en la sección activa, buscar en todo el documento
+        if (!container) {
+            container = document.getElementById("webcam-container-1");
+        }
+        if (!labelContainer) {
+            labelContainer = document.getElementById("label-container-1");
+        }
+
+        if (container && webcam1.canvas) {
+            container.innerHTML = ''; // Limpiar contenedor
+            container.classList.remove('hidden'); // Asegurar que esté visible
+            container.appendChild(webcam1.canvas);
+            console.log('✅ Canvas de cámara agregado al contenedor');
+        } else {
+            console.warn('⚠️ No se encontró el contenedor webcam-container-1');
+        }
+
+        labelContainer1 = labelContainer;
         if (labelContainer1) {
             labelContainer1.innerHTML = '';
             for (let i = 0; i < maxPredictions; i++) {
@@ -305,8 +453,8 @@ async function initPlayer2() {
             throw new Error('Teachable Machine Image no está cargado.');
         }
 
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
+        const modelURL = MODEL_URL + "model.json";
+        const metadataURL = MODEL_URL + "metadata.json";
 
         console.log('Cargando modelo para Jugador 2...');
         model2 = await tm.load(modelURL, metadataURL);
@@ -385,12 +533,25 @@ async function predictPlayer1() {
             }
         }
 
-        // Actualizar UI del gesto detectado
-        if (detectedGesture && GESTURES[detectedGesture]) {
+        // Actualizar UI del gesto detectado SOLO si es válido (no Indeterminado y >50%)
+        if (detectedGesture && GESTURES[detectedGesture] && maxProbability > 0.5) {
             updateGestureDisplay('gesture1', detectedGesture);
             // Guardar el gesto detectado si estamos jugando (se usará después del countdown)
             if (gameState.isPlaying) {
                 gameState.player1Gesture = detectedGesture;
+            }
+        } else {
+            // Si no hay gesto válido, limpiar el gesto anterior para evitar usar el de la ronda pasada
+            if (gameState.isPlaying && !detectedGesture) {
+                gameState.player1Gesture = null;
+                // Mostrar "Esperando..." si no hay gesto válido
+                const gesture1Element = document.getElementById('gesture1');
+                if (gesture1Element) {
+                    const emoji1 = gesture1Element.querySelector('.emoji');
+                    const text1 = gesture1Element.querySelector('.gesture-text');
+                    if (emoji1) emoji1.textContent = '👤';
+                    if (text1) text1.textContent = 'Esperando...';
+                }
             }
         }
     } catch (error) {
@@ -451,10 +612,65 @@ function updateGestureDisplay(elementId, gesture) {
 
 // Iniciar juego
 async function startGame() {
-    if (gameState.isPlaying) return;
+    // Permitir iniciar si isPlaying es false (incluso después de un error)
+    if (gameState.isPlaying) {
+        console.log('⚠️ El juego ya está en progreso, esperando...');
+        return;
+    }
 
     // Si está en modo online, usar función específica
-    if (gameState.mode === 'online') {
+    if (gameState.mode === 'online' || gameState.online.isOnline) {
+        // Validar que esté conectado a una sala
+        if (!gameState.online.isOnline || !gameState.online.roomCode) {
+            alert('❌ No estás conectado a una sala. Por favor, crea o únete a una sala primero.');
+            return;
+        }
+
+        // Validar que haya 2 jugadores conectados
+        if (gameState.online.database) {
+            try {
+                const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+                const snapshot = await roomRef.child('players').once('value');
+                const players = snapshot.val();
+                const playerCount = players ? Object.keys(players).length : 0;
+
+                if (playerCount < 2) {
+                    alert('❌ Espera a que se conecte el segundo jugador antes de iniciar el juego.');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error al verificar jugadores:', error);
+                alert('❌ Error al verificar el estado de la sala. Por favor, intenta nuevamente.');
+                return;
+            }
+        }
+
+        // Validar que la cámara esté inicializada (verificar de múltiples formas)
+        const isCameraReady = webcam1 && (
+            webcam1.isPlaying ||
+            (webcam1.canvas && webcam1.canvas.width > 0) ||
+            (webcam1.video && webcam1.video.readyState >= 2)
+        );
+
+        if (!isCameraReady) {
+            console.log('⚠️ Estado de la cámara:', {
+                webcam1: !!webcam1,
+                isPlaying: webcam1 ? webcam1.isPlaying : false,
+                hasCanvas: webcam1 ? !!webcam1.canvas : false,
+                canvasWidth: webcam1 && webcam1.canvas ? webcam1.canvas.width : 0,
+                hasVideo: webcam1 ? !!webcam1.video : false,
+                videoReadyState: webcam1 && webcam1.video ? webcam1.video.readyState : 0
+            });
+            alert('❌ Por favor, primero inicializa la cámara haciendo clic en "Inicializar Cámara"');
+            return;
+        }
+
+        console.log('✅ Cámara verificada correctamente:', {
+            isPlaying: webcam1.isPlaying,
+            hasCanvas: !!webcam1.canvas,
+            canvasWidth: webcam1.canvas ? webcam1.canvas.width : 0
+        });
+
         await startGameOnline();
         return;
     }
@@ -518,6 +734,15 @@ async function countdown() {
 
 // Capturar gestos
 async function captureGestures() {
+    // En modo online, primero verificar si ya hay un gesto válido detectado por el loop continuo
+    if ((gameState.mode === 'online' || gameState.online.isOnline) &&
+        gameState.player1Gesture &&
+        gameState.player1Gesture !== 'Indeterminado' &&
+        GESTURES[gameState.player1Gesture]) {
+        console.log(`✅ Usando gesto ya detectado por el loop continuo: ${gameState.player1Gesture}`);
+        return; // Ya tenemos un gesto válido, no necesitamos capturar de nuevo
+    }
+
     // Esperar un momento para que se estabilice la detección después del "¡YA!"
     await sleep(1000);
 
@@ -543,7 +768,15 @@ async function captureGestures() {
                 updateGestureDisplay('gesture1', detectedGesture);
                 console.log(`✅ Gesto Jugador 1 detectado: ${detectedGesture} (${(maxProbability * 100).toFixed(1)}%)`);
             } else {
-                console.warn(`⚠️ Gesto Jugador 1 no válido: ${detectedGesture || 'ninguno'} (${(maxProbability * 100).toFixed(1)}%)`);
+                // En modo online, si no se detecta un gesto nuevo pero ya hay uno válido, mantenerlo
+                if ((gameState.mode === 'online' || gameState.online.isOnline) &&
+                    gameState.player1Gesture &&
+                    gameState.player1Gesture !== 'Indeterminado' &&
+                    GESTURES[gameState.player1Gesture]) {
+                    console.log(`✅ Manteniendo gesto válido existente: ${gameState.player1Gesture}`);
+                } else {
+                    console.warn(`⚠️ Gesto Jugador 1 no válido: ${detectedGesture || 'ninguno'} (${(maxProbability * 100).toFixed(1)}%)`);
+                }
             }
         } catch (error) {
             console.error('Error al capturar gesto del jugador 1:', error);
@@ -684,7 +917,13 @@ function showResult(result, player1, player2, winner) {
 
     const opponentLabel = gameState.mode === 'system' ? 'Sistema' : 'Jugador 2';
 
-    modalMessage.textContent = `Tú elegiste ${player1Name}. ${opponentLabel} eligió ${player2Name}.`;
+    // Modo sistema: Sistema primero, luego Jugador 1
+    // Modo online: Jugador 2 primero, luego Jugador 1
+    if (gameState.mode === 'system') {
+        modalMessage.textContent = `${opponentLabel} eligió ${player2Name}. Tú elegiste ${player1Name}.`;
+    } else {
+        modalMessage.textContent = `${opponentLabel} eligió ${player2Name}. Tú elegiste ${player1Name}.`;
+    }
 
     // Actualizar marcadores en el modal
     document.getElementById('modal-score-1').textContent = gameState.scores.player1;
@@ -708,10 +947,19 @@ function announceResult(result, player1, player2, isSystem) {
 
     let message = '';
     if (result === 'Empate') {
-        message = `Empate. Ambos eligieron ${player1Name}.`;
+        // Modo sistema: Sistema primero, luego Jugador 1
+        if (isSystem) {
+            message = `Empate. ${opponent} eligió ${player2Name}. Tú elegiste ${player1Name}.`;
+        } else {
+            message = `Empate. Ambos eligieron ${player1Name}.`;
+        }
     } else if (result === 'Ganaste') {
+        // Modo sistema: Sistema primero, luego Jugador 1
+        // Modo online: Jugador 2 primero, luego Jugador 1
         message = `${opponent} eligió ${player2Name}. Tú elegiste ${player1Name}. ¡Ganaste esta ronda!`;
     } else {
+        // Modo sistema: Sistema primero, luego Jugador 1
+        // Modo online: Jugador 2 primero, luego Jugador 1
         message = `${opponent} eligió ${player2Name}. Tú elegiste ${player1Name}. ${opponent} gana esta ronda.`;
     }
 
@@ -1018,12 +1266,13 @@ function showOnlineResult(resultData) {
             const player1Name = GESTURES[resultData.player1Gesture].name.toLowerCase();
             const player2Name = GESTURES[resultData.player2Gesture].name.toLowerCase();
             let message = '';
+            // Modo online: Jugador 2 primero, luego Jugador 1
             if (result === 'Empate') {
-                message = `Empate. Ambos eligieron ${player1Name}.`;
+                message = `Empate. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tú elegiste ${isPlayer1 ? player1Name : player2Name}.`;
             } else if (result === 'Ganaste') {
-                message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. ¡Ganaste esta ronda!`;
+                message = `Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tú elegiste ${isPlayer1 ? player1Name : player2Name}. ¡Ganaste esta ronda!`;
             } else {
-                message = `Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tu oponente gana esta ronda.`;
+                message = `Tu oponente eligió ${isPlayer1 ? player2Name : player1Name}. Tú elegiste ${isPlayer1 ? player1Name : player2Name}. Tu oponente gana esta ronda.`;
             }
 
             speak(message).catch(err => console.error('Error al anunciar:', err));
@@ -1074,59 +1323,18 @@ function resetScores() {
     document.getElementById('result-display').classList.add('hidden');
 }
 
-// Cambiar modo de juego
+// Cambiar modo de juego (ya no se usa desde botón, pero se mantiene para compatibilidad)
 async function toggleMode() {
+    // Esta función ya no se usa desde un botón, pero se mantiene por si se necesita
+    // El cambio de modo ahora se hace desde el botón "Sala" en la sección online
     if (gameState.isPlaying) {
         alert('No puedes cambiar el modo mientras se está jugando una ronda.');
         return;
     }
-
-    const initBtn = document.getElementById('initCameraBtn');
-    const startBtn = document.getElementById('startBtn');
-
-    gameState.mode = gameState.mode === 'system' ? 'player' : 'system';
-
-    if (gameState.mode === 'player') {
-        // Modo jugador vs jugador - abrir modal online directamente
-        openOnlineModal();
-
-        // Ocultar segunda cámara hasta que se inicialice
-        document.getElementById('webcam-container-2').classList.add('hidden');
-        document.getElementById('label-container-2').classList.add('hidden');
-        // Si había una cámara inicializada, detenerla para reinicializar
-        if (webcam2) {
-            webcam2.stop();
-            webcam2 = null;
-            model2 = null;
-        }
-        // Deshabilitar botón de inicio hasta que se inicialice la cámara
-        startBtn.disabled = true;
-        initBtn.disabled = false;
-        initBtn.textContent = 'Inicializar Cámara';
-        initBtn.style.background = '';
-    } else {
-        // Ocultar segunda cámara en modo sistema
-        document.getElementById('webcam-container-2').classList.add('hidden');
-        document.getElementById('label-container-2').classList.add('hidden');
-        if (webcam2) {
-            webcam2.stop();
-            webcam2 = null;
-            model2 = null;
-        }
-        // Modo sistema - habilitar botón de iniciar juego si la cámara está inicializada
-        if (webcam1) {
-            startBtn.disabled = false;
-        } else {
-            startBtn.disabled = true;
-        }
-    }
-
-    updateUI();
 }
 
 // Actualizar UI según el modo
 function updateUI() {
-    const modeBtn = document.getElementById('modeBtn');
     const leaveOnlineBtn = document.getElementById('leaveOnlineBtn');
     const opponentTitle = document.getElementById('opponent-title');
     const opponentLabel = document.getElementById('opponent-label');
@@ -1141,9 +1349,8 @@ function updateUI() {
     }
 
     if (gameState.mode === 'system' || (gameState.mode === 'online' && !gameState.online.isOnline)) {
-        modeBtn.textContent = 'Modo: Jugador vs Sistema';
-        opponentTitle.textContent = 'Sistema';
-        opponentLabel.textContent = 'Sistema';
+        if (opponentTitle) opponentTitle.textContent = 'Sistema';
+        if (opponentLabel) opponentLabel.textContent = 'Sistema';
         if (systemEmoji) systemEmoji.textContent = '🤖';
         if (systemText) systemText.textContent = 'Esperando...';
 
@@ -1151,9 +1358,8 @@ function updateUI() {
         if (webcamContainer2) webcamContainer2.classList.add('hidden');
         if (labelContainer2) labelContainer2.classList.add('hidden');
     } else if (gameState.mode === 'player' && !gameState.online.isOnline) {
-        modeBtn.textContent = 'Modo: Jugador vs Jugador';
-        opponentTitle.textContent = 'Jugador 2';
-        opponentLabel.textContent = 'Jugador 2';
+        if (opponentTitle) opponentTitle.textContent = 'Jugador 2';
+        if (opponentLabel) opponentLabel.textContent = 'Jugador 2';
 
         // Mostrar cámara del jugador 2 solo en modo local
         if (webcamContainer2 && webcam2) {
@@ -1173,8 +1379,10 @@ function updateUI() {
             webcam2 = null;
             model2 = null;
         }
-        systemEmoji.textContent = '👤';
-        systemText.textContent = 'Esperando...';
+        if (systemEmoji) systemEmoji.textContent = '👤';
+        if (systemText) systemText.textContent = 'Esperando...';
+        if (opponentTitle) opponentTitle.textContent = 'Oponente Online';
+        if (opponentLabel) opponentLabel.textContent = 'Oponente';
     }
 }
 
@@ -1322,6 +1530,24 @@ async function createRoom() {
         // Actualizar UI para modo online
         updateUIForOnlineMode();
 
+        // Si la cámara ya está inicializada, moverla al contenedor correcto
+        if (webcam1 && webcam1.canvas) {
+            const activeSection = document.querySelector('.section.active');
+            let container = null;
+            if (activeSection) {
+                container = activeSection.querySelector("#webcam-container-1");
+            }
+            if (!container) {
+                container = document.getElementById("webcam-container-1");
+            }
+            if (container) {
+                container.innerHTML = '';
+                container.classList.remove('hidden');
+                container.appendChild(webcam1.canvas);
+                console.log('✅ Cámara movida al contenedor de la sección activa');
+            }
+        }
+
         // Crear sala en Firebase con timeout
         const roomRef = firebaseDatabase.ref(`rooms/${roomCode}`);
 
@@ -1356,6 +1582,12 @@ async function createRoom() {
 
         console.log('✅ Sala creada en Firebase:', roomCode);
 
+        // Verificar si ya hay jugadores conectados (por si se conectó antes de que se creara el listener)
+        const initialSnapshot = await roomRef.child('players').once('value');
+        const initialPlayers = initialSnapshot.val();
+        const initialPlayerCount = initialPlayers ? Object.keys(initialPlayers).length : 0;
+        console.log('👥 Jugadores iniciales en la sala:', initialPlayerCount);
+
         // Mostrar código de sala con todas las opciones
         document.getElementById('onlineMenu').classList.add('hidden');
         document.getElementById('roomCodeSection').classList.remove('hidden');
@@ -1364,12 +1596,82 @@ async function createRoom() {
         document.getElementById('copyCodeBtn').style.display = 'inline-block';
         document.getElementById('roomCodeInput').style.display = 'none';
         document.getElementById('joinWithCodeBtn').style.display = 'none';
-        document.getElementById('roomStatus').innerHTML = `
-            <strong>Comparte este código con tu oponente:</strong><br>
-            <span style="font-size: 1.5rem; letter-spacing: 3px;">${roomCode}</span><br><br>
-            Esperando a que otro jugador se una...
-        `;
+
+        // Si ya hay 2 jugadores, actualizar UI inmediatamente
+        if (initialPlayerCount >= 2) {
+            const opponentId = Object.keys(initialPlayers).find(id => id !== gameState.online.playerId);
+            const opponent = opponentId ? initialPlayers[opponentId] : null;
+
+            // Actualizar UI del oponente
+            const opponentTitle = document.getElementById('opponent-title');
+            const opponentLabel = document.getElementById('opponent-label');
+            const systemEmoji = document.getElementById('system-emoji');
+            const systemText = document.getElementById('system-text');
+
+            if (opponentTitle) opponentTitle.textContent = 'Oponente Online';
+            if (opponentLabel) opponentLabel.textContent = 'Oponente';
+            if (systemEmoji) systemEmoji.textContent = '👤';
+            if (systemText && opponent) {
+                systemText.textContent = opponent.name || 'Oponente conectado';
+            } else if (systemText) {
+                systemText.textContent = 'Oponente conectado';
+            }
+
+            document.getElementById('roomStatus').innerHTML = `
+                <strong style="color: #4ade80;">✅ ¡Jugador conectado!</strong><br>
+                Ambos jugadores están listos.<br>
+                Haz clic en <strong>"Iniciar Juego"</strong> para comenzar.
+            `;
+
+            // Habilitar botones si la cámara está inicializada (verificar de múltiples formas)
+            const isCameraReady = webcam1 && (
+                webcam1.isPlaying ||
+                (webcam1.canvas && webcam1.canvas.width > 0) ||
+                (webcam1.video && webcam1.video.readyState >= 2) ||
+                model1
+            );
+
+            if (isCameraReady) {
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = false;
+                });
+                const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                if (startGameOnlineBtn) {
+                    startGameOnlineBtn.style.display = 'inline-block';
+                    startGameOnlineBtn.disabled = false;
+                }
+                console.log('✅ Botones habilitados (2 jugadores + cámara inicializada)');
+            } else {
+                console.log('⚠️ Botones NO habilitados (cámara no inicializada)', {
+                    webcam1: !!webcam1,
+                    isPlaying: webcam1 ? webcam1.isPlaying : false,
+                    hasCanvas: webcam1 ? !!webcam1.canvas : false,
+                    hasModel: !!model1
+                });
+            }
+        } else {
+            document.getElementById('roomStatus').innerHTML = `
+                <strong>Comparte este código con tu oponente:</strong><br>
+                <span style="font-size: 1.5rem; letter-spacing: 3px;">${roomCode}</span><br><br>
+                Esperando a que otro jugador se una...
+            `;
+        }
+
         updateRoomPlayers();
+
+        // El botón de inicio NO se habilita hasta que haya 2 jugadores Y la cámara esté inicializada
+        const startBtns = document.querySelectorAll('#startBtn');
+        startBtns.forEach(btn => {
+            btn.disabled = true;
+        });
+        const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+        if (startGameOnlineBtn) {
+            startGameOnlineBtn.style.display = 'none';
+            startGameOnlineBtn.disabled = true;
+        }
+
+        console.log('🔒 Botones deshabilitados inicialmente (esperando 2 jugadores + cámara)');
 
         // Escuchar cuando alguien se une
         roomRef.child('players').on('value', (snapshot) => {
@@ -1377,27 +1679,100 @@ async function createRoom() {
             if (players) {
                 updateRoomPlayers();
                 const playerCount = Object.keys(players).length;
+                console.log('👥 Jugadores en la sala:', playerCount, players);
+
                 if (playerCount >= 2) {
+                    // Encontrar el oponente (el que no es el jugador local)
+                    const opponentId = Object.keys(players).find(id => id !== gameState.online.playerId);
+                    const opponent = opponentId ? players[opponentId] : null;
+
+                    console.log('✅ Oponente encontrado:', opponentId, opponent);
+
+                    // Actualizar UI del oponente
+                    const opponentTitle = document.getElementById('opponent-title');
+                    const opponentLabel = document.getElementById('opponent-label');
+                    const systemEmoji = document.getElementById('system-emoji');
+                    const systemText = document.getElementById('system-text');
+
+                    if (opponentTitle) opponentTitle.textContent = 'Oponente Online';
+                    if (opponentLabel) opponentLabel.textContent = 'Oponente';
+                    if (systemEmoji) systemEmoji.textContent = '👤';
+                    if (systemText && opponent) {
+                        systemText.textContent = opponent.name || 'Oponente conectado';
+                    } else if (systemText) {
+                        systemText.textContent = 'Oponente conectado';
+                    }
+
                     document.getElementById('roomStatus').innerHTML = `
                         <strong style="color: #4ade80;">✅ ¡Jugador conectado!</strong><br>
                         Ambos jugadores están listos.<br>
                         Haz clic en <strong>"Iniciar Juego"</strong> para comenzar.
                     `;
                     gameState.online.database.ref(`rooms/${roomCode}/status`).set('ready');
-                    // Mostrar y habilitar botón de inicio en el modal
+
+                    // Mostrar y habilitar botón de inicio en el modal SOLO cuando hay 2 jugadores
                     const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
-                    startGameOnlineBtn.style.display = 'inline-block';
-                    startGameOnlineBtn.disabled = false;
-                    // También habilitar botón principal
-                    document.getElementById('startBtn').disabled = false;
+                    if (startGameOnlineBtn) {
+                        startGameOnlineBtn.style.display = 'inline-block';
+                        startGameOnlineBtn.disabled = false;
+                    }
+
+                    // También habilitar botón principal SOLO cuando hay 2 jugadores Y la cámara está inicializada
+                    const isCameraReady = webcam1 && (
+                        webcam1.isPlaying ||
+                        (webcam1.canvas && webcam1.canvas.width > 0) ||
+                        (webcam1.video && webcam1.video.readyState >= 2) ||
+                        model1
+                    );
+
+                    if (isCameraReady) {
+                        const startBtns = document.querySelectorAll('#startBtn');
+                        startBtns.forEach(btn => {
+                            btn.disabled = false;
+                        });
+                        console.log('✅ Botón "Iniciar Juego" habilitado (2 jugadores + cámara)');
+                    } else {
+                        // Mantener deshabilitado si no hay cámara
+                        const startBtns = document.querySelectorAll('#startBtn');
+                        startBtns.forEach(btn => {
+                            btn.disabled = true;
+                        });
+                        console.log('⚠️ Botón "Iniciar Juego" NO habilitado (falta inicializar cámara)', {
+                            webcam1: !!webcam1,
+                            isPlaying: webcam1 ? webcam1.isPlaying : false,
+                            hasCanvas: webcam1 ? !!webcam1.canvas : false,
+                            canvasWidth: webcam1 && webcam1.canvas ? webcam1.canvas.width : 0,
+                            hasModel: !!model1
+                        });
+                    }
                 } else {
+                    // Actualizar UI cuando no hay 2 jugadores
+                    const opponentTitle = document.getElementById('opponent-title');
+                    const opponentLabel = document.getElementById('opponent-label');
+                    const systemEmoji = document.getElementById('system-emoji');
+                    const systemText = document.getElementById('system-text');
+
+                    if (opponentTitle) opponentTitle.textContent = 'Oponente Online';
+                    if (opponentLabel) opponentLabel.textContent = 'Oponente';
+                    if (systemEmoji) systemEmoji.textContent = '👤';
+                    if (systemText) systemText.textContent = 'Esperando...';
+
                     document.getElementById('roomStatus').innerHTML = `
                         <strong>Comparte este código con tu oponente:</strong><br>
                         <span style="font-size: 1.5rem; letter-spacing: 3px;">${roomCode}</span><br><br>
                         Esperando a que otro jugador se una...
                     `;
-                    document.getElementById('startGameOnlineBtn').style.display = 'none';
-                    document.getElementById('startBtn').disabled = true;
+                    // Deshabilitar botones hasta que haya 2 jugadores
+                    const startBtns = document.querySelectorAll('#startBtn');
+                    startBtns.forEach(btn => {
+                        btn.disabled = true;
+                    });
+                    const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                    if (startGameOnlineBtn) {
+                        startGameOnlineBtn.style.display = 'none';
+                        startGameOnlineBtn.disabled = true;
+                    }
+                    console.log('🔒 Botones deshabilitados (menos de 2 jugadores)');
                 }
             }
         });
@@ -1407,10 +1782,11 @@ async function createRoom() {
             const playerData = snapshot.val();
             const playerId = snapshot.key;
 
-            // Si no es el jugador local y tiene un gesto, actualizar UI
-            if (playerId !== gameState.online.playerId && playerData.gesture) {
+            // Si no es el jugador local y tiene un gesto válido, actualizar UI
+            if (playerId !== gameState.online.playerId && playerData.gesture &&
+                playerData.gesture !== 'Indeterminado' && GESTURES[playerData.gesture]) {
                 gameState.player2Gesture = playerData.gesture;
-                // Solo actualizar el display del gesto, NO mostrar cámara
+                // Actualizar el display del gesto con emoji
                 updateGestureDisplay('gesture2', playerData.gesture);
                 // Asegurar que la cámara esté oculta en modo online
                 document.getElementById('webcam-container-2').classList.add('hidden');
@@ -1430,10 +1806,13 @@ async function createRoom() {
                     showOnlineResult(onlineGameState.result);
                 }
 
-                // Si hay error de indeterminado
+                // Si hay error de indeterminado (solo leer con voz una vez)
                 if (onlineGameState.error === 'indeterminado') {
                     const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
-                    speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+                    if (!hasSpokenError) {
+                        hasSpokenError = true;
+                        speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+                    }
                     alert(errorMessage);
                     roomRef.child('gameState/error').set(null); // Limpiar error
                 }
@@ -1582,6 +1961,25 @@ async function joinRoom() {
 
         // Actualizar UI
         updateUIForOnlineMode();
+
+        // Si la cámara ya está inicializada, moverla al contenedor correcto
+        if (webcam1 && webcam1.canvas) {
+            const activeSection = document.querySelector('.section.active');
+            let container = null;
+            if (activeSection) {
+                container = activeSection.querySelector("#webcam-container-1");
+            }
+            if (!container) {
+                container = document.getElementById("webcam-container-1");
+            }
+            if (container) {
+                container.innerHTML = '';
+                container.classList.remove('hidden');
+                container.appendChild(webcam1.canvas);
+                console.log('✅ Cámara movida al contenedor de la sección activa');
+            }
+        }
+
         document.getElementById('onlineMenu').classList.add('hidden');
         document.getElementById('roomCodeSection').classList.remove('hidden');
         document.getElementById('roomCodeTitle').textContent = '✅ Conectado a Sala';
@@ -1607,10 +2005,13 @@ async function joinRoom() {
                     showOnlineResult(onlineGameState.result);
                 }
 
-                // Si hay error de indeterminado
+                // Si hay error de indeterminado (solo leer con voz una vez)
                 if (onlineGameState.error === 'indeterminado') {
                     const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
-                    speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+                    if (!hasSpokenError) {
+                        hasSpokenError = true;
+                        speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+                    }
                     alert(errorMessage);
                     roomRef.child('gameState/error').set(null); // Limpiar error
                 }
@@ -1622,10 +2023,11 @@ async function joinRoom() {
             const playerData = snapshot.val();
             const playerId = snapshot.key;
 
-            // Si no es el jugador local y tiene un gesto, actualizar UI
-            if (playerId !== gameState.online.playerId && playerData.gesture) {
+            // Si no es el jugador local y tiene un gesto válido, actualizar UI
+            if (playerId !== gameState.online.playerId && playerData.gesture &&
+                playerData.gesture !== 'Indeterminado' && GESTURES[playerData.gesture]) {
                 gameState.player2Gesture = playerData.gesture;
-                // Solo actualizar el display del gesto, NO mostrar cámara
+                // Actualizar el display del gesto con emoji
                 updateGestureDisplay('gesture2', playerData.gesture);
                 // Asegurar que la cámara esté oculta en modo online
                 document.getElementById('webcam-container-2').classList.add('hidden');
@@ -1634,9 +2036,28 @@ async function joinRoom() {
             updateRoomPlayers();
         });
 
-        // Escuchar cuando se unen jugadores
+        // Escuchar cuando se unen jugadores (para actualizar UI del host)
         roomRef.child('players').on('value', (snapshot) => {
-            updateRoomPlayers();
+            const players = snapshot.val();
+            if (players) {
+                updateRoomPlayers();
+                const playerCount = Object.keys(players).length;
+                console.log('👥 Jugadores en la sala (desde joinRoom):', playerCount);
+
+                // Si hay 2 jugadores, actualizar UI del oponente en el host también
+                if (playerCount >= 2) {
+                    const opponentId = Object.keys(players).find(id => id !== gameState.online.playerId);
+                    const opponent = opponentId ? players[opponentId] : null;
+
+                    if (opponent) {
+                        const opponentTitle = document.getElementById('opponent-title');
+                        const systemText = document.getElementById('system-text');
+
+                        if (opponentTitle) opponentTitle.textContent = 'Oponente Online';
+                        if (systemText) systemText.textContent = opponent.name || 'Oponente conectado';
+                    }
+                }
+            }
         });
 
         // Notificar al host que hay un jugador
@@ -1656,14 +2077,19 @@ async function joinRoom() {
 
 // Manejar estado del juego online
 function handleOnlineGameState(onlineGameState) {
-    if (onlineGameState.isPlaying && !gameState.isPlaying) {
-        // El juego ha comenzado
-        startOnlineGame();
+    console.log('📡 Estado del juego recibido:', onlineGameState);
+
+    // Mostrar countdown si está disponible (tanto para host como para no-host)
+    if (onlineGameState.countdown !== undefined && onlineGameState.countdown !== null) {
+        console.log('🔢 Countdown recibido desde Firebase:', onlineGameState.countdown);
+        // Mostrar cuenta regresiva (0 significa "¡YA!")
+        showCountdown(onlineGameState.countdown);
     }
 
-    if (onlineGameState.countdown !== undefined && onlineGameState.countdown > 0) {
-        // Mostrar cuenta regresiva
-        showCountdown(onlineGameState.countdown);
+    if (onlineGameState.isPlaying && !gameState.isPlaying) {
+        console.log('🎮 El juego ha comenzado, iniciando startOnlineGame');
+        // El juego ha comenzado
+        startOnlineGame();
     }
 }
 
@@ -1671,29 +2097,69 @@ function handleOnlineGameState(onlineGameState) {
 async function startOnlineGame() {
     if (!gameState.online.isOnline) return;
 
+    // RESETEAR gestos anteriores al inicio de cada ronda
+    gameState.player1Gesture = null;
+    gameState.player2Gesture = null;
+
+    // Resetear bandera de error hablado para permitir leer errores en nuevas rondas
+    hasSpokenError = false;
+
+    // Limpiar displays de gestos
+    const gesture1Element = document.getElementById('gesture1');
+    const gesture2Element = document.getElementById('gesture2');
+    if (gesture1Element) {
+        const emoji1 = gesture1Element.querySelector('.emoji');
+        const text1 = gesture1Element.querySelector('.gesture-text');
+        if (emoji1) emoji1.textContent = '👤';
+        if (text1) text1.textContent = 'Esperando...';
+    }
+    if (gesture2Element) {
+        const emoji2 = gesture2Element.querySelector('.emoji');
+        const text2 = gesture2Element.querySelector('.gesture-text');
+        if (emoji2) emoji2.textContent = '👤';
+        if (text2) text2.textContent = 'Esperando...';
+    }
+
+    console.log('🔄 Gestos reseteados para nueva ronda');
+
     // Solo el host inicia la cuenta regresiva
     if (gameState.online.isHost) {
         gameState.isPlaying = true;
         const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
 
         // Iniciar cuenta regresiva sincronizada - ambos jugadores verán el countdown
+        console.log('🎬 Host iniciando countdown...');
+
+        // Mostrar y enviar countdown 3
         showCountdown(3);
         await roomRef.child('gameState/countdown').set(3);
+        console.log('✅ Countdown 3 enviado a Firebase');
         await sleep(1000);
 
+        // Mostrar y enviar countdown 2
         showCountdown(2);
         await roomRef.child('gameState/countdown').set(2);
+        console.log('✅ Countdown 2 enviado a Firebase');
         await sleep(1000);
 
+        // Mostrar y enviar countdown 1
         showCountdown(1);
         await roomRef.child('gameState/countdown').set(1);
+        console.log('✅ Countdown 1 enviado a Firebase');
         await sleep(1000);
 
-        showCountdown(0); // Mostrar "¡YA!"
+        // Mostrar y enviar "¡YA!"
+        showCountdown(0);
         await roomRef.child('gameState/countdown').set(0);
+        console.log('✅ Countdown ¡YA! enviado a Firebase');
         await sleep(500);
 
+        // Limpiar countdown después de mostrar "¡YA!"
+        await roomRef.child('gameState/countdown').set(null);
+        console.log('✅ Countdown limpiado');
+
         await roomRef.child('gameState/isPlaying').set(true);
+        console.log('✅ isPlaying establecido en true');
     }
 
     // Ambos jugadores capturan su gesto cuando el juego inicia
@@ -1705,15 +2171,145 @@ async function startOnlineGame() {
         await sleep(1000); // El host espera después de mostrar "¡YA!"
     }
 
-    await captureGestures();
+    // En modo online, hacer múltiples intentos de captura para asegurar que se detecte el gesto
+    let capturedGesture = null;
+    let maxAttempts = 5; // Intentar hasta 5 veces
+    let attempt = 0;
 
-    if (gameState.player1Gesture && gameState.player1Gesture !== 'Indeterminado') {
+    while (attempt < maxAttempts && !capturedGesture) {
+        await captureGestures();
+
+        // Verificar si se capturó un gesto válido
+        if (gameState.player1Gesture &&
+            gameState.player1Gesture !== 'Indeterminado' &&
+            GESTURES[gameState.player1Gesture]) {
+            capturedGesture = gameState.player1Gesture;
+            console.log(`✅ Gesto capturado en intento ${attempt + 1}: ${capturedGesture}`);
+            break;
+        }
+
+        // Si no se capturó, esperar un poco más y volver a intentar
+        if (attempt < maxAttempts - 1) {
+            console.log(`⚠️ Intento ${attempt + 1} fallido, reintentando...`);
+            await sleep(500); // Esperar 500ms antes del siguiente intento
+        }
+        attempt++;
+    }
+
+    // Si después de todos los intentos no se capturó, usar el gesto que ya está en gameState (del loop continuo)
+    if (!capturedGesture && gameState.player1Gesture &&
+        gameState.player1Gesture !== 'Indeterminado' &&
+        GESTURES[gameState.player1Gesture]) {
+        capturedGesture = gameState.player1Gesture;
+        console.log('✅ Usando gesto detectado por el loop continuo:', capturedGesture);
+    }
+
+    // Validar que el gesto sea válido (no null, no Indeterminado, y sea un gesto válido)
+    if (capturedGesture &&
+        capturedGesture !== 'Indeterminado' &&
+        GESTURES[capturedGesture]) {
+        // Actualizar gameState con el gesto capturado
+        gameState.player1Gesture = capturedGesture;
+        updateGestureDisplay('gesture1', capturedGesture);
+
         const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
-        await roomRef.child(`players/${gameState.online.playerId}/gesture`).set(gameState.player1Gesture);
+        await roomRef.child(`players/${gameState.online.playerId}/gesture`).set(capturedGesture);
         await roomRef.child(`players/${gameState.online.playerId}/ready`).set(true);
-        console.log('✅ Gesto enviado a Firebase:', gameState.player1Gesture);
+        console.log('✅ Gesto enviado a Firebase:', capturedGesture);
     } else {
-        console.warn('⚠️ No se pudo detectar gesto válido para enviar');
+        console.warn('⚠️ No se pudo detectar gesto válido para enviar después de múltiples intentos. Estado actual:', {
+            capturedGesture,
+            gameStatePlayer1Gesture: gameState.player1Gesture,
+            isIndeterminado: gameState.player1Gesture === 'Indeterminado',
+            inGESTURES: gameState.player1Gesture ? !!GESTURES[gameState.player1Gesture] : false
+        });
+        // Notificar error y pedir que reinicien (solo leer con voz una vez)
+        const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
+        if (!hasSpokenError) {
+            hasSpokenError = true;
+            speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+        }
+        alert(errorMessage);
+
+        // RESETEAR completamente el estado del juego
+        gameState.isPlaying = false;
+        gameState.player1Gesture = null;
+        gameState.player2Gesture = null;
+        isProcessingResult = false;
+
+        // Limpiar estado en Firebase
+        if (gameState.online.database && gameState.online.roomCode) {
+            const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+            roomRef.child('gameState/isPlaying').set(false).catch(err => console.error('Error al resetear isPlaying:', err));
+            roomRef.child('gameState/error').set('indeterminado').catch(err => console.error('Error al setear error:', err));
+        }
+
+        // Verificar condiciones para habilitar botones (2 jugadores + cámara)
+        const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+        roomRef.child('players').once('value').then((snapshot) => {
+            const players = snapshot.val();
+            const playerCount = players ? Object.keys(players).length : 0;
+
+            const isCameraReady = webcam1 && (
+                webcam1.isPlaying ||
+                (webcam1.canvas && webcam1.canvas.width > 0) ||
+                (webcam1.video && webcam1.video.readyState >= 2) ||
+                model1
+            );
+
+            // Solo habilitar si hay 2 jugadores Y la cámara está lista
+            if (playerCount >= 2 && isCameraReady) {
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = false;
+                });
+                const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                if (startGameOnlineBtn) {
+                    startGameOnlineBtn.disabled = false;
+                }
+                console.log('✅ Botones habilitados después de reset (2 jugadores + cámara)');
+            } else {
+                // Mantener deshabilitado si no se cumplen las condiciones
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = true;
+                });
+                const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                if (startGameOnlineBtn) {
+                    startGameOnlineBtn.disabled = true;
+                }
+                console.log('🔒 Botones deshabilitados después de reset (condiciones no cumplidas)', {
+                    playerCount,
+                    isCameraReady
+                });
+            }
+        }).catch(err => {
+            console.error('Error al verificar jugadores después de reset:', err);
+            // En caso de error, mantener deshabilitado
+            const startBtns = document.querySelectorAll('#startBtn');
+            startBtns.forEach(btn => {
+                btn.disabled = true;
+            });
+        });
+
+        // Limpiar displays de gestos
+        const gesture1Element = document.getElementById('gesture1');
+        const gesture2Element = document.getElementById('gesture2');
+        if (gesture1Element) {
+            const emoji1 = gesture1Element.querySelector('.emoji');
+            const text1 = gesture1Element.querySelector('.gesture-text');
+            if (emoji1) emoji1.textContent = '👤';
+            if (text1) text1.textContent = 'Esperando...';
+        }
+        if (gesture2Element) {
+            const emoji2 = gesture2Element.querySelector('.emoji');
+            const text2 = gesture2Element.querySelector('.gesture-text');
+            if (emoji2) emoji2.textContent = '👤';
+            if (text2) text2.textContent = 'Esperando...';
+        }
+
+        console.log('🔄 Estado del juego reseteado después de error de Indeterminado');
+        return;
     }
 
     // Solo el host verifica el resultado
@@ -1725,6 +2321,9 @@ async function startOnlineGame() {
 
 // Bandera para evitar procesar resultado múltiples veces
 let isProcessingResult = false;
+
+// Bandera para evitar leer el mensaje de error múltiples veces en modo online
+let hasSpokenError = false;
 
 // Verificar resultado del juego online
 async function checkOnlineGameResult() {
@@ -1753,15 +2352,69 @@ async function checkOnlineGameResult() {
         return;
     }
 
-    // Verificar que ambos jugadores tengan gestos
+    // Verificar que ambos jugadores tengan gestos válidos (no Indeterminado)
     const player1Data = players[playerIds[0]];
     const player2Data = players[playerIds[1]];
 
-    if (!player1Data.gesture || !player2Data.gesture) {
-        // Esperar un poco más
-        isProcessingResult = false;
-        setTimeout(checkOnlineGameResult, 500);
-        return;
+    if (!player1Data.gesture || !player2Data.gesture ||
+        player1Data.gesture === 'Indeterminado' || player2Data.gesture === 'Indeterminado' ||
+        !GESTURES[player1Data.gesture] || !GESTURES[player2Data.gesture]) {
+        // Esperar un poco más si aún no hay gestos
+        if (!player1Data.gesture || !player2Data.gesture) {
+            isProcessingResult = false;
+            setTimeout(checkOnlineGameResult, 500);
+            return;
+        } else {
+            // Si hay gestos pero son inválidos, mostrar error (solo leer con voz una vez)
+            const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
+            if (!hasSpokenError) {
+                hasSpokenError = true;
+                speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+            }
+            alert(errorMessage);
+
+            // RESETEAR completamente el estado del juego
+            gameState.isPlaying = false;
+            gameState.player1Gesture = null;
+            gameState.player2Gesture = null;
+            isProcessingResult = false;
+
+            // Limpiar estado en Firebase
+            if (gameState.online.database && gameState.online.roomCode) {
+                const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+                roomRef.child('gameState/isPlaying').set(false).catch(err => console.error('Error al resetear isPlaying:', err));
+                roomRef.child('gameState/error').set('indeterminado').catch(err => console.error('Error al setear error:', err));
+            }
+
+            // Habilitar botones para reiniciar
+            const startBtns = document.querySelectorAll('#startBtn');
+            startBtns.forEach(btn => {
+                btn.disabled = false;
+            });
+            const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+            if (startGameOnlineBtn) {
+                startGameOnlineBtn.disabled = false;
+            }
+
+            // Limpiar displays de gestos
+            const gesture1Element = document.getElementById('gesture1');
+            const gesture2Element = document.getElementById('gesture2');
+            if (gesture1Element) {
+                const emoji1 = gesture1Element.querySelector('.emoji');
+                const text1 = gesture1Element.querySelector('.gesture-text');
+                if (emoji1) emoji1.textContent = '👤';
+                if (text1) text1.textContent = 'Esperando...';
+            }
+            if (gesture2Element) {
+                const emoji2 = gesture2Element.querySelector('.emoji');
+                const text2 = gesture2Element.querySelector('.gesture-text');
+                if (emoji2) emoji2.textContent = '👤';
+                if (text2) text2.textContent = 'Esperando...';
+            }
+
+            console.log('🔄 Estado del juego reseteado después de error de Indeterminado');
+            return;
+        }
     }
 
     // Determinar quién es el jugador local
@@ -1769,9 +2422,105 @@ async function checkOnlineGameResult() {
     const localGesture = isPlayer1 ? player1Data.gesture : player2Data.gesture;
     const opponentGesture = isPlayer1 ? player2Data.gesture : player1Data.gesture;
 
+    // Validar que los gestos sean válidos antes de comparar
+    if (!localGesture || !opponentGesture ||
+        localGesture === 'Indeterminado' || opponentGesture === 'Indeterminado' ||
+        !GESTURES[localGesture] || !GESTURES[opponentGesture]) {
+        const errorMessage = 'Uno de los jugadores no eligió su movimiento correctamente. Por favor, inicia el juego nuevamente mostrando el gesto más claramente.';
+        if (!hasSpokenError) {
+            hasSpokenError = true;
+            speak(errorMessage).catch(err => console.error('Error al anunciar:', err));
+        }
+        alert(errorMessage);
+
+        // RESETEAR completamente el estado del juego
+        gameState.isPlaying = false;
+        gameState.player1Gesture = null;
+        gameState.player2Gesture = null;
+        isProcessingResult = false;
+
+        // Limpiar estado en Firebase
+        if (gameState.online.database && gameState.online.roomCode) {
+            const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+            roomRef.child('gameState/isPlaying').set(false).catch(err => console.error('Error al resetear isPlaying:', err));
+            roomRef.child('gameState/error').set('indeterminado').catch(err => console.error('Error al setear error:', err));
+        }
+
+        // Verificar condiciones para habilitar botones (2 jugadores + cámara)
+        const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+        roomRef.child('players').once('value').then((snapshot) => {
+            const players = snapshot.val();
+            const playerCount = players ? Object.keys(players).length : 0;
+
+            const isCameraReady = webcam1 && (
+                webcam1.isPlaying ||
+                (webcam1.canvas && webcam1.canvas.width > 0) ||
+                (webcam1.video && webcam1.video.readyState >= 2) ||
+                model1
+            );
+
+            // Solo habilitar si hay 2 jugadores Y la cámara está lista
+            if (playerCount >= 2 && isCameraReady) {
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = false;
+                });
+                const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                if (startGameOnlineBtn) {
+                    startGameOnlineBtn.disabled = false;
+                }
+                console.log('✅ Botones habilitados después de reset (2 jugadores + cámara)');
+            } else {
+                // Mantener deshabilitado si no se cumplen las condiciones
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = true;
+                });
+                const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                if (startGameOnlineBtn) {
+                    startGameOnlineBtn.disabled = true;
+                }
+                console.log('🔒 Botones deshabilitados después de reset (condiciones no cumplidas)', {
+                    playerCount,
+                    isCameraReady
+                });
+            }
+        }).catch(err => {
+            console.error('Error al verificar jugadores después de reset:', err);
+            // En caso de error, mantener deshabilitado
+            const startBtns = document.querySelectorAll('#startBtn');
+            startBtns.forEach(btn => {
+                btn.disabled = true;
+            });
+        });
+
+        // Limpiar displays de gestos
+        const gesture1Element = document.getElementById('gesture1');
+        const gesture2Element = document.getElementById('gesture2');
+        if (gesture1Element) {
+            const emoji1 = gesture1Element.querySelector('.emoji');
+            const text1 = gesture1Element.querySelector('.gesture-text');
+            if (emoji1) emoji1.textContent = '👤';
+            if (text1) text1.textContent = 'Esperando...';
+        }
+        if (gesture2Element) {
+            const emoji2 = gesture2Element.querySelector('.emoji');
+            const text2 = gesture2Element.querySelector('.gesture-text');
+            if (emoji2) emoji2.textContent = '👤';
+            if (text2) text2.textContent = 'Esperando...';
+        }
+
+        console.log('🔄 Estado del juego reseteado después de error de Indeterminado');
+        return;
+    }
+
     // Comparar gestos
     gameState.player1Gesture = localGesture;
     gameState.player2Gesture = opponentGesture;
+
+    // Actualizar displays con emojis
+    updateGestureDisplay('gesture1', localGesture);
+    updateGestureDisplay('gesture2', opponentGesture);
 
     // Solo el host compara y muestra resultado (evitar duplicados)
     if (gameState.online.isHost) {
@@ -1811,12 +2560,13 @@ async function checkOnlineGameResult() {
         const player1Name = GESTURES[player1].name.toLowerCase();
         const player2Name = GESTURES[player2].name.toLowerCase();
         let message = '';
+        // Modo online: Jugador 2 primero, luego Jugador 1
         if (result === 'Empate') {
-            message = `Empate. Ambos eligieron ${player1Name}.`;
+            message = `Empate. Tu oponente eligió ${player2Name}. Tú elegiste ${player1Name}.`;
         } else if (result === 'Ganaste') {
-            message = `Tú elegiste ${player1Name}. Tu oponente eligió ${player2Name}. ¡Ganaste esta ronda!`;
+            message = `Tu oponente eligió ${player2Name}. Tú elegiste ${player1Name}. ¡Ganaste esta ronda!`;
         } else {
-            message = `Tú elegiste ${player1Name}. Tu oponente eligió ${player2Name}. Tu oponente gana esta ronda.`;
+            message = `Tu oponente eligió ${player2Name}. Tú elegiste ${player1Name}. Tu oponente gana esta ronda.`;
         }
 
         speak(message).catch(err => console.error('Error al anunciar:', err));
@@ -1876,7 +2626,67 @@ async function checkOnlineGameResult() {
 
 // Modificar startGame para soportar modo online
 async function startGameOnline() {
-    if (!gameState.online.isOnline) return;
+    if (!gameState.online.isOnline || !gameState.online.roomCode) {
+        alert('❌ No estás conectado a una sala. Por favor, crea o únete a una sala primero.');
+        return;
+    }
+
+    // Validar que la cámara esté inicializada (verificar de múltiples formas)
+    const isCameraReady = webcam1 && (
+        webcam1.isPlaying ||
+        (webcam1.canvas && webcam1.canvas.width > 0) ||
+        (webcam1.video && webcam1.video.readyState >= 2) ||
+        model1 // Si el modelo está cargado, la cámara probablemente está lista
+    );
+
+    if (!isCameraReady) {
+        console.log('⚠️ Estado de la cámara en startGameOnline:', {
+            webcam1: !!webcam1,
+            isPlaying: webcam1 ? webcam1.isPlaying : false,
+            hasCanvas: webcam1 ? !!webcam1.canvas : false,
+            canvasWidth: webcam1 && webcam1.canvas ? webcam1.canvas.width : 0,
+            hasVideo: webcam1 ? !!webcam1.video : false,
+            videoReadyState: webcam1 && webcam1.video ? webcam1.video.readyState : 0,
+            hasModel: !!model1
+        });
+        alert('❌ Por favor, primero inicializa la cámara haciendo clic en "Inicializar Cámara"');
+        return;
+    }
+
+    console.log('✅ Cámara verificada en startGameOnline:', {
+        isPlaying: webcam1.isPlaying,
+        hasCanvas: !!webcam1.canvas,
+        canvasWidth: webcam1.canvas ? webcam1.canvas.width : 0,
+        hasModel: !!model1
+    });
+
+    // Validar que haya 2 jugadores conectados
+    if (gameState.online.database) {
+        try {
+            const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+            const snapshot = await roomRef.child('players').once('value');
+            const players = snapshot.val();
+            const playerCount = players ? Object.keys(players).length : 0;
+
+            if (playerCount < 2) {
+                alert('❌ Espera a que se conecte el segundo jugador antes de iniciar el juego.');
+                // Deshabilitar botones si no hay 2 jugadores
+                const startBtns = document.querySelectorAll('#startBtn');
+                startBtns.forEach(btn => {
+                    btn.disabled = true;
+                });
+                const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+                if (startGameOnlineBtn) {
+                    startGameOnlineBtn.disabled = true;
+                }
+                return;
+            }
+        } catch (error) {
+            console.error('Error al verificar jugadores:', error);
+            alert('❌ Error al verificar el estado de la sala. Por favor, intenta nuevamente.');
+            return;
+        }
+    }
 
     if (gameState.online.isHost) {
         // Solo el host puede iniciar el juego
@@ -1888,11 +2698,63 @@ async function startGameOnline() {
 
 // Mostrar cuenta regresiva
 function showCountdown(number) {
-    const countdownElement = document.getElementById('countdown');
-    countdownElement.textContent = number;
-    countdownElement.classList.remove('hidden');
+    console.log('🔢 Mostrando countdown:', number);
+
+    // Buscar el elemento countdown en la sección activa primero
+    const activeSection = document.querySelector('.section.active');
+    let countdownElement = null;
+
+    if (activeSection) {
+        countdownElement = activeSection.querySelector('#countdown');
+        console.log('🔍 Buscando countdown en sección activa:', activeSection.id, countdownElement ? '✅ Encontrado' : '❌ No encontrado');
+    }
+
+    // Si no se encuentra en la sección activa, buscar en todo el documento
+    if (!countdownElement) {
+        const allCountdowns = document.querySelectorAll('#countdown');
+        console.log('🔍 Total de elementos countdown encontrados:', allCountdowns.length);
+        if (allCountdowns.length > 0) {
+            // Usar el primero que esté visible o el de la sección online
+            for (let elem of allCountdowns) {
+                const section = elem.closest('.section');
+                if (section && (section.id === 'jugar-online' || !section.classList.contains('hidden'))) {
+                    countdownElement = elem;
+                    console.log('✅ Usando countdown de sección:', section.id);
+                    break;
+                }
+            }
+            // Si no encontramos uno específico, usar el primero
+            if (!countdownElement && allCountdowns.length > 0) {
+                countdownElement = allCountdowns[0];
+                console.log('✅ Usando primer countdown encontrado');
+            }
+        }
+    }
+
+    if (!countdownElement) {
+        console.error('❌ No se encontró el elemento countdown');
+        return;
+    }
+
+    // Mostrar el número o "¡YA!" si es 0
     if (number === 0) {
-        setTimeout(() => countdownElement.classList.add('hidden'), 500);
+        countdownElement.textContent = '¡YA!';
+    } else {
+        countdownElement.textContent = number;
+    }
+
+    // Asegurar que esté visible
+    countdownElement.classList.remove('hidden');
+    countdownElement.style.display = 'block';
+    countdownElement.style.visibility = 'visible';
+
+    console.log('✅ Countdown mostrado:', countdownElement.textContent);
+
+    if (number === 0) {
+        setTimeout(() => {
+            countdownElement.classList.add('hidden');
+            console.log('✅ Countdown ocultado después de ¡YA!');
+        }, 500);
     }
 }
 
@@ -1946,15 +2808,12 @@ function updateRoomPlayers() {
 function updateUIForOnlineMode() {
     const opponentTitle = document.getElementById('opponent-title');
     const opponentLabel = document.getElementById('opponent-label');
-    const modeBtn = document.getElementById('modeBtn');
     const leaveOnlineBtn = document.getElementById('leaveOnlineBtn');
     const webcamContainer2 = document.getElementById('webcam-container-2');
     const labelContainer2 = document.getElementById('label-container-2');
 
-    opponentTitle.textContent = 'Oponente Online';
-    opponentLabel.textContent = 'Oponente';
-    modeBtn.textContent = 'Modo: Online';
-    modeBtn.disabled = true; // Deshabilitar cambio de modo cuando está online
+    if (opponentTitle) opponentTitle.textContent = 'Oponente Online';
+    if (opponentLabel) opponentLabel.textContent = 'Oponente';
 
     // Mostrar botón para salir del modo online
     if (leaveOnlineBtn) {
@@ -1977,16 +2836,81 @@ function updateUIForOnlineMode() {
     }
 }
 
+// Función para limpiar la sala cuando el usuario sale
+function cleanupRoomOnExit() {
+    if (gameState.online.isOnline && gameState.online.database && gameState.online.roomCode) {
+        const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
+
+        if (gameState.online.isHost) {
+            // Si es el host, eliminar toda la sala
+            roomRef.remove().then(() => {
+                console.log('✅ Sala eliminada al salir (host)');
+            }).catch(err => {
+                console.error('Error al eliminar sala:', err);
+            });
+        } else {
+            // Si es jugador, solo salir de la sala
+            roomRef.child(`players/${gameState.online.playerId}`).remove().then(() => {
+                console.log('✅ Jugador removido de la sala al salir');
+
+                // Verificar si quedan jugadores, si no, eliminar la sala
+                roomRef.child('players').once('value').then((snapshot) => {
+                    const players = snapshot.val();
+                    if (!players || Object.keys(players).length === 0) {
+                        roomRef.remove().then(() => {
+                            console.log('✅ Sala eliminada (sin jugadores)');
+                        }).catch(err => {
+                            console.error('Error al eliminar sala vacía:', err);
+                        });
+                    }
+                }).catch(err => {
+                    console.error('Error al verificar jugadores:', err);
+                });
+            }).catch(err => {
+                console.error('Error al remover jugador:', err);
+            });
+        }
+    }
+}
+
+// Listener para cuando el usuario cierra la página o la pestaña
+window.addEventListener('beforeunload', (e) => {
+    cleanupRoomOnExit();
+});
+
+// Listener para cuando la página se cierra (pagehide es más confiable que beforeunload en algunos casos)
+window.addEventListener('pagehide', () => {
+    cleanupRoomOnExit();
+});
+
 // Salir de la sala
 function leaveRoom() {
     if (gameState.online.isOnline && gameState.online.database) {
         const roomRef = gameState.online.database.ref(`rooms/${gameState.online.roomCode}`);
         if (gameState.online.isHost) {
             // Si es el host, eliminar la sala
-            roomRef.remove().catch(err => console.error('Error al eliminar sala:', err));
+            roomRef.remove().then(() => {
+                console.log('✅ Sala eliminada por el host');
+            }).catch(err => console.error('Error al eliminar sala:', err));
         } else {
             // Si es jugador, solo salir
-            roomRef.child(`players/${gameState.online.playerId}`).remove().catch(err => console.error('Error al salir:', err));
+            roomRef.child(`players/${gameState.online.playerId}`).remove().then(() => {
+                console.log('✅ Jugador removido de la sala');
+
+                // Verificar si quedan jugadores, si no, eliminar la sala
+                roomRef.child('players').once('value').then((snapshot) => {
+                    const players = snapshot.val();
+                    if (!players || Object.keys(players).length === 0) {
+                        roomRef.remove().then(() => {
+                            console.log('✅ Sala eliminada (sin jugadores)');
+                        }).catch(err => {
+                            console.error('Error al eliminar sala vacía:', err);
+                        });
+                    }
+                }).catch(err => {
+                    console.error('Error al verificar jugadores:', err);
+                });
+            }).catch(err => console.error('Error al salir:', err));
         }
     }
 
@@ -1998,12 +2922,7 @@ function leaveRoom() {
     gameState.mode = 'system';
 
     // Restaurar UI
-    const modeBtn = document.getElementById('modeBtn');
     const leaveOnlineBtn = document.getElementById('leaveOnlineBtn');
-    if (modeBtn) {
-        modeBtn.disabled = false;
-        modeBtn.textContent = 'Modo: Jugador vs Sistema';
-    }
     if (leaveOnlineBtn) {
         leaveOnlineBtn.style.display = 'none';
     }

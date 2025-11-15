@@ -7,113 +7,306 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🎮 Piedra, Papel o Tijeras</h1>
-            <p class="subtitle">Controlado por Visión Artificial y Voz</p>
-        </header>
-
-        <div class="controls">
-            <button id="initCameraBtn" class="btn btn-primary">Inicializar Cámara</button>
-            <button id="startBtn" class="btn btn-primary" disabled>Iniciar Juego</button>
-            <button id="resetBtn" class="btn btn-secondary">Reiniciar Marcador</button>
-            <button id="modeBtn" class="btn btn-mode">Modo: Jugador vs Sistema</button>
-            <button id="leaveOnlineBtn" class="btn btn-secondary" style="display: none;">Salir del Modo Online</button>
-        </div>
-
-        <!-- Modal para Juego Online -->
-        <div id="onlineModal" class="modal hidden">
-            <div class="modal-content">
-                <button id="closeOnlineModalBtn" class="btn-close" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.5rem; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">×</button>
-                <h2>🎮 Juego Online</h2>
-                <div id="onlineMenu">
-                    <button id="createRoomBtn" class="btn btn-primary" style="margin: 10px; width: 200px;">Crear Sala</button>
-                    <button id="joinRoomBtn" class="btn btn-secondary" style="margin: 10px; width: 200px;">Unirse a Sala</button>
-                </div>
-                <div id="roomCodeSection" class="hidden">
-                    <button id="closeRoomModalBtn" class="btn-close" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.5rem; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
-                    <h3 id="roomCodeTitle"></h3>
-                    <div id="roomCodeDisplay" style="font-size: 2.5rem; font-weight: bold; margin: 20px; padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; letter-spacing: 5px;"></div>
-                    <button id="copyCodeBtn" class="btn btn-primary" style="margin: 10px; display: none;">📋 Copiar Código</button>
-                    <p id="roomStatus" style="margin: 10px; font-size: 1.1rem;"></p>
-                    <div id="roomPlayers" style="margin: 15px 0;"></div>
-                    <input type="text" id="roomCodeInput" placeholder="Ingresa el código de la sala (6 caracteres)" style="padding: 10px; font-size: 1.2rem; margin: 10px; width: 280px; text-align: center; border-radius: 5px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; text-transform: uppercase;" maxlength="6">
-                    <div style="margin: 10px;">
-                        <button id="startGameOnlineBtn" class="btn btn-primary" style="margin: 5px; display: none; font-size: 1.2rem; padding: 12px 24px;">🎮 Iniciar Juego</button>
-                        <button id="joinWithCodeBtn" class="btn btn-primary" style="margin: 5px;">Unirse</button>
-                        <button id="cancelOnlineBtn" class="btn btn-secondary" style="margin: 5px;">Cancelar / Salir</button>
-                    </div>
-                </div>
+    <!-- Navegación -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-icon">✊✋✌️</span>
+                <span class="logo-text">Piedra, Papel, Tijeras</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link active">Inicio</a></li>
+                <li><a href="#como-jugar" class="nav-link">Cómo Jugar</a></li>
+                <li><a href="#jugar-sistema" class="nav-link">Jugar con Sistema</a></li>
+                <li><a href="#jugar-online" class="nav-link">Jugar en Línea</a></li>
+            </ul>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
         </div>
+    </nav>
 
-        <div class="game-area">
-            <!-- Jugador 1 (Izquierda) -->
-            <div class="player-section" id="player1Section">
-                <h2>Jugador 1</h2>
-                <div id="webcam-container-1" class="webcam-container"></div>
-                <div id="label-container-1" class="label-container"></div>
-                <div class="gesture-display" id="gesture1">
-                    <span class="emoji">👤</span>
-                    <p class="gesture-text">Esperando...</p>
+    <!-- Sección Home -->
+    <section id="home" class="section active">
+        <div class="container">
+            <div class="hero">
+                <h1 class="hero-title">🎮 Piedra, Papel o Tijeras</h1>
+                <p class="hero-subtitle">Controlado por Inteligencia Artificial</p>
+                <p class="hero-description">
+                    Un juego clásico reinventado con visión artificial y voz sintética. 
+                    Juega usando gestos de tu mano y escucha los resultados con una voz natural.
+                </p>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-icon">🤖</div>
+                    <h3>Teachable Machine</h3>
+                    <p>
+                        El modelo de visión artificial fue entrenado con cientos de fotografías 
+                        de los gestos de piedra, papel y tijeras. Usa TensorFlow.js para detectar 
+                        en tiempo real tu elección mediante la cámara web.
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">🎙️</div>
+                    <h3>VAPI & ElevenLabs</h3>
+                    <p>
+                        La voz del juego utiliza VAPI integrado con ElevenLabs para generar 
+                        respuestas naturales. El sistema fue alimentado con un archivo de prompts 
+                        y reglas detalladas que describen el juego, sus estados y personalidad.
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">🔥</div>
+                    <h3>Firebase Realtime</h3>
+                    <p>
+                        Para el modo multijugador en línea, utilizamos Firebase Realtime Database 
+                        para sincronizar el estado del juego entre jugadores en tiempo real, 
+                        permitiendo partidas fluidas y sin retrasos.
+                    </p>
                 </div>
             </div>
 
-            <!-- Contador y Resultado -->
-            <div class="center-section">
-                <div id="countdown" class="countdown hidden">3</div>
-                <div id="result-display" class="result-display hidden">
-                    <h3 id="result-text"></h3>
-                    <div class="scoreboard">
-                        <div class="score-item">
-                            <span>Jugador 1</span>
-                            <span id="score-player1">0</span>
-                        </div>
-                        <div class="score-item">
-                            <span id="opponent-label">Sistema</span>
-                            <span id="score-opponent">0</span>
-                        </div>
-                        <div class="score-item">
-                            <span>Rondas</span>
-                            <span id="rounds-count">0</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="cta-buttons">
+                <a href="#jugar-sistema" class="btn btn-primary">Jugar con Sistema</a>
+                <a href="#jugar-online" class="btn btn-secondary">Jugar en Línea</a>
             </div>
+        </div>
+    </section>
 
-            <!-- Sistema o Jugador 2 (Derecha) -->
-            <div class="player-section" id="player2Section">
-                <h2 id="opponent-title">Sistema</h2>
-                <div id="webcam-container-2" class="webcam-container hidden"></div>
-                <div id="label-container-2" class="label-container hidden"></div>
-                <div class="gesture-display" id="gesture2">
-                    <span class="emoji" id="system-emoji">🤖</span>
-                    <p class="gesture-text" id="system-text">Esperando...</p>
+    <!-- Sección Cómo Jugar -->
+    <section id="como-jugar" class="section">
+        <div class="container">
+            <h2 class="section-title">📖 Cómo Jugar</h2>
+            
+            <div class="rules-container">
+                <div class="rule-card">
+                    <div class="rule-number">1</div>
+                    <h3>Inicializa la Cámara</h3>
+                    <p>Haz clic en "Inicializar Cámara" y permite el acceso a tu cámara web cuando el navegador lo solicite.</p>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-number">2</div>
+                    <h3>Elige tu Modo</h3>
+                    <p>Puedes jugar contra el sistema (IA aleatoria) o contra otro jugador en línea.</p>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-number">3</div>
+                    <h3>Realiza tu Gesto</h3>
+                    <p>Cuando inicies el juego, muestra tu gesto a la cámara:</p>
+                    <ul class="gesture-list">
+                        <li><span class="gesture-emoji">✊</span> Piedra: Puño cerrado</li>
+                        <li><span class="gesture-emoji">✋</span> Papel: Mano abierta</li>
+                        <li><span class="gesture-emoji">✌️</span> Tijeras: Dos dedos extendidos</li>
+                    </ul>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-number">4</div>
+                    <h3>Reglas del Juego</h3>
+                    <ul class="rules-list">
+                        <li>✊ <strong>Piedra</strong> vence a ✌️ <strong>Tijeras</strong></li>
+                        <li>✋ <strong>Papel</strong> vence a ✊ <strong>Piedra</strong></li>
+                        <li>✌️ <strong>Tijeras</strong> vence a ✋ <strong>Papel</strong></li>
+                        <li>Si ambos eligen lo mismo, es un <strong>Empate</strong></li>
+                    </ul>
+                </div>
+                <div class="rule-card">
+                    <div class="rule-number">5</div>
+                    <h3>Escucha los Resultados</h3>
+                    <p>El sistema anunciará con voz natural quién ganó cada ronda, los puntajes y el número de rondas jugadas.</p>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Modal de Resultado -->
-        <div id="resultModal" class="modal hidden">
-            <div class="modal-content">
-                <h2 id="modal-title">Resultado</h2>
-                <p id="modal-message"></p>
-                <div class="modal-scores">
-                    <div class="modal-score-item">
-                        <span>Jugador 1:</span>
-                        <span id="modal-score-1">0</span>
+    <!-- Sección Jugar con Sistema -->
+    <section id="jugar-sistema" class="section">
+        <div class="container">
+            <h2 class="section-title">🤖 Jugar con Sistema</h2>
+            <p class="section-description">Juega contra una inteligencia artificial que elige aleatoriamente entre piedra, papel o tijeras.</p>
+
+            <div class="game-container">
+                <div class="controls">
+                    <button id="initCameraBtn" class="btn btn-primary">Inicializar Cámara</button>
+                    <button id="startBtn" class="btn btn-primary" disabled>Iniciar Juego</button>
+                    <button id="resetBtn" class="btn btn-secondary">Reiniciar Marcador</button>
+                </div>
+
+                <div class="game-area">
+                    <!-- Jugador 1 (Izquierda) -->
+                    <div class="player-section" id="player1Section">
+                        <h2>Jugador 1</h2>
+                        <div id="webcam-container-1" class="webcam-container"></div>
+                        <div id="label-container-1" class="label-container"></div>
+                        <div class="gesture-display" id="gesture1">
+                            <span class="emoji">👤</span>
+                            <p class="gesture-text">Esperando...</p>
+                        </div>
                     </div>
-                    <div class="modal-score-item">
-                        <span id="modal-opponent-label">Sistema:</span>
-                        <span id="modal-score-2">0</span>
+
+                    <!-- Contador y Resultado -->
+                    <div class="center-section">
+                        <div id="countdown" class="countdown hidden">3</div>
+                        <div id="result-display" class="result-display hidden">
+                            <h3 id="result-text"></h3>
+                            <div class="scoreboard">
+                                <div class="score-item">
+                                    <span>Jugador 1</span>
+                                    <span id="score-player1">0</span>
+                                </div>
+                                <div class="score-item">
+                                    <span id="opponent-label">Sistema</span>
+                                    <span id="score-opponent">0</span>
+                                </div>
+                                <div class="score-item">
+                                    <span>Rondas</span>
+                                    <span id="rounds-count">0</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-score-item">
-                        <span>Rondas:</span>
-                        <span id="modal-rounds">0</span>
+
+                    <!-- Sistema o Jugador 2 (Derecha) -->
+                    <div class="player-section" id="player2Section">
+                        <h2 id="opponent-title">Sistema</h2>
+                        <div id="webcam-container-2" class="webcam-container hidden"></div>
+                        <div id="label-container-2" class="label-container hidden"></div>
+                        <div class="gesture-display" id="gesture2">
+                            <span class="emoji" id="system-emoji">🤖</span>
+                            <p class="gesture-text" id="system-text">Esperando...</p>
+                        </div>
                     </div>
                 </div>
-                <button id="closeModal" class="btn btn-primary">Continuar</button>
             </div>
+        </div>
+    </section>
+
+    <!-- Sección Jugar en Línea -->
+    <section id="jugar-online" class="section">
+        <div class="container">
+            <h2 class="section-title">🌐 Jugar en Línea</h2>
+            <p class="section-description">Conéctate con otro jugador y juega en tiempo real usando códigos de sala.</p>
+
+            <div class="online-info">
+                <div class="info-box">
+                    <h3>🎯 Cómo Funciona</h3>
+                    <ol>
+                        <li>Un jugador crea una sala y obtiene un código único</li>
+                        <li>El otro jugador ingresa ese código para unirse</li>
+                        <li>Ambos jugadores inicializan sus cámaras</li>
+                        <li>El creador de la sala inicia el juego</li>
+                        <li>¡Disfruta de una partida en tiempo real!</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="game-container">
+                <div class="controls">
+                    <button id="initCameraBtn" class="btn btn-primary">Inicializar Cámara</button>
+                    <button id="startBtn" class="btn btn-primary" disabled>Iniciar Juego</button>
+                    <button id="resetBtn" class="btn btn-secondary">Reiniciar Marcador</button>
+                    <button id="salaBtn" class="btn btn-secondary">Sala</button>
+                    <button id="leaveOnlineBtn" class="btn btn-secondary" style="display: none;">Salir del Modo Online</button>
+                </div>
+
+                <div class="game-area">
+                    <!-- Jugador 1 (Izquierda) -->
+                    <div class="player-section" id="player1Section">
+                        <h2>Jugador 1</h2>
+                        <div id="webcam-container-1" class="webcam-container"></div>
+                        <div id="label-container-1" class="label-container"></div>
+                        <div class="gesture-display" id="gesture1">
+                            <span class="emoji">👤</span>
+                            <p class="gesture-text">Esperando...</p>
+                        </div>
+                    </div>
+
+                    <!-- Contador y Resultado -->
+                    <div class="center-section">
+                        <div id="countdown" class="countdown hidden">3</div>
+                        <div id="result-display" class="result-display hidden">
+                            <h3 id="result-text"></h3>
+                            <div class="scoreboard">
+                                <div class="score-item">
+                                    <span>Jugador 1</span>
+                                    <span id="score-player1">0</span>
+                                </div>
+                                <div class="score-item">
+                                    <span id="opponent-label">Oponente</span>
+                                    <span id="score-opponent">0</span>
+                                </div>
+                                <div class="score-item">
+                                    <span>Rondas</span>
+                                    <span id="rounds-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Oponente (Derecha) -->
+                    <div class="player-section" id="player2Section">
+                        <h2 id="opponent-title">Oponente Online</h2>
+                        <div id="webcam-container-2" class="webcam-container hidden"></div>
+                        <div id="label-container-2" class="label-container hidden"></div>
+                        <div class="gesture-display" id="gesture2">
+                            <span class="emoji" id="system-emoji">👤</span>
+                            <p class="gesture-text" id="system-text">Esperando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal para Juego Online -->
+    <div id="onlineModal" class="modal hidden">
+        <div class="modal-content">
+            <button id="closeOnlineModalBtn" class="btn-close">×</button>
+            <h2>🎮 Juego Online</h2>
+            <div id="onlineMenu">
+                <button id="createRoomBtn" class="btn btn-primary">Crear Sala</button>
+                <button id="joinRoomBtn" class="btn btn-secondary">Unirse a Sala</button>
+            </div>
+            <div id="roomCodeSection" class="hidden">
+                <button id="closeRoomModalBtn" class="btn-close">×</button>
+                <h3 id="roomCodeTitle"></h3>
+                <div id="roomCodeDisplay" class="room-code-display"></div>
+                <button id="copyCodeBtn" class="btn btn-primary" style="display: none;">📋 Copiar Código</button>
+                <p id="roomStatus"></p>
+                <div id="roomPlayers"></div>
+                <input type="text" id="roomCodeInput" placeholder="Ingresa el código de la sala (6 caracteres)" maxlength="6">
+                <div class="modal-buttons">
+                    <button id="startGameOnlineBtn" class="btn btn-primary" style="display: none;">🎮 Iniciar Juego</button>
+                    <button id="joinWithCodeBtn" class="btn btn-primary">Unirse</button>
+                    <button id="cancelOnlineBtn" class="btn btn-secondary">Cancelar / Salir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Resultado -->
+    <div id="resultModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Resultado</h2>
+            <p id="modal-message"></p>
+            <div class="modal-scores">
+                <div class="modal-score-item">
+                    <span>Jugador 1:</span>
+                    <span id="modal-score-1">0</span>
+                </div>
+                <div class="modal-score-item">
+                    <span id="modal-opponent-label">Sistema:</span>
+                    <span id="modal-score-2">0</span>
+                </div>
+                <div class="modal-score-item">
+                    <span>Rondas:</span>
+                    <span id="modal-rounds">0</span>
+                </div>
+            </div>
+            <button id="closeModal" class="btn btn-primary">Continuar</button>
         </div>
     </div>
 
@@ -147,7 +340,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
-    <!-- Configuración de Firebase (debes configurar tus credenciales) -->
+    <!-- Configuración de Firebase -->
     <script src="firebase-config.js"></script>
 
     <!-- Scripts de TensorFlow y Teachable Machine -->
@@ -158,7 +351,7 @@
             onload="console.log('Teachable Machine Image cargado')" 
             onerror="console.error('Error al cargar Teachable Machine Image')"></script>
     
-    <!-- Script principal - se carga después de que las librerías estén listas -->
+    <!-- Script principal -->
     <script>
         // Función para esperar a que las librerías se carguen
         function waitForLibraries(callback, maxAttempts = 50) {
@@ -166,7 +359,6 @@
             const checkInterval = setInterval(function() {
                 attempts++;
                 const tfLoaded = typeof tf !== 'undefined';
-                // Verificar diferentes posibles nombres de la variable
                 const tmLoaded = typeof tmImage !== 'undefined' || 
                                 typeof tm !== 'undefined' || 
                                 (window.tmImage !== undefined) ||
@@ -175,35 +367,60 @@
                 if (tfLoaded && tmLoaded) {
                     clearInterval(checkInterval);
                     console.log('✓ Todas las librerías cargadas correctamente');
-                    console.log('TensorFlow:', typeof tf);
-                    // Intentar encontrar la variable correcta
                     if (typeof tmImage !== 'undefined') {
                         window.tmImage = tmImage;
-                        console.log('Teachable Machine (tmImage):', typeof tmImage);
                     } else if (typeof tm !== 'undefined') {
                         window.tmImage = tm;
-                        console.log('Teachable Machine (tm):', typeof tm);
                     }
                     callback();
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkInterval);
-                    console.error('Timeout esperando librerías después de', attempts, 'intentos');
-                    console.log('TensorFlow cargado:', tfLoaded);
-                    console.log('tmImage:', typeof tmImage);
-                    console.log('tm:', typeof tm);
-                    console.log('Variables globales relacionadas:', Object.keys(window).filter(k => 
-                        k.toLowerCase().includes('tm') || 
-                        k.toLowerCase().includes('teachable') ||
-                        k.toLowerCase().includes('image')
-                    ));
-                    alert('Error: Las librerías no se cargaron completamente.\n\nPor favor:\n1. Verifica tu conexión a internet\n2. Recarga la página (F5)\n3. Abre la consola del navegador (F12) para más detalles');
+                    console.error('Timeout esperando librerías');
+                    alert('Error: Las librerías no se cargaron completamente.\n\nPor favor:\n1. Verifica tu conexión a internet\n2. Recarga la página (F5)');
                 } else {
                     if (attempts % 10 === 0) {
                         console.log('Esperando librerías... Intento ' + attempts + '/' + maxAttempts);
-                        console.log('TF:', tfLoaded, 'TM:', tmLoaded);
                     }
                 }
             }, 200);
+        }
+        
+        // Navegación entre secciones
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navegación suave
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    showSection(targetId);
+                    
+                    // Actualizar navegación activa
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Cerrar menú móvil
+                    document.querySelector('.nav-menu').classList.remove('active');
+                });
+            });
+
+            // Menú hamburguesa
+            document.querySelector('.hamburger').addEventListener('click', function() {
+                document.querySelector('.nav-menu').classList.toggle('active');
+            });
+
+            // Mostrar sección inicial
+            showSection('home');
+        });
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
         }
         
         // Esperar a que la página y los scripts se carguen
@@ -215,7 +432,6 @@
         });
         
         function loadMainScript() {
-            // Cargar el script principal
             const script = document.createElement('script');
             script.src = 'script.js';
             script.async = false;
@@ -230,4 +446,3 @@
     </script>
 </body>
 </html>
-
